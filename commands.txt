@@ -1,0 +1,4 @@
+// Run these commands in your terminal one by one:
+
+1. php artisan install:api -n
+2. php artisan migrate
