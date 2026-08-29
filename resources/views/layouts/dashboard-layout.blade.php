@@ -73,6 +73,19 @@
         if (topbarNameEl) topbarNameEl.textContent = user.name;
         if (sidebarGymNameEl) sidebarGymNameEl.textContent = gymName;
         if (sidebarLogoGymNameEl) sidebarLogoGymNameEl.textContent = gymName;
+
+        // Apply Gym Logo if available
+        if (user.gym && user.gym.logo) {
+            const sbLogoImg = document.getElementById('sidebar-gym-logo-img');
+            const sbLogoIcon = document.getElementById('sidebar-gym-logo-icon');
+            if (sbLogoImg && sbLogoIcon) {
+                // Determine if logo is a full URL or relative path
+                const logoPath = user.gym.logo.startsWith('http') ? user.gym.logo : `/${user.gym.logo}`;
+                sbLogoImg.src = logoPath;
+                sbLogoImg.style.display = 'block';
+                sbLogoIcon.style.display = 'none';
+            }
+        }
         
         const roleDisplay = user.role.charAt(0).toUpperCase() + user.role.slice(1);
         const topbarRoleEl = document.getElementById('topbar-role');

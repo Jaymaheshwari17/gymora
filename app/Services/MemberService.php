@@ -197,6 +197,53 @@ class MemberService
             throw $e;
         }
     }
+    public function renewPlan(int $memberId, int $gymId, array $data)
+    {
+        DB::beginTransaction();
+        try {
+            $member = Member::where('id', $memberId)->where('gym_id', $gymId)->firstOrFail();
+            $plan = Plan::where('id', $data['plan_id'])->where('gym_id', $gymId)->firstOrFail();
+            
+            $planAmount = $plan->amount;
+            $discount = isset($data['discount']) ? (float)$data['discount'] : 0;
+            $totalAmount = max(0, $planAmount - $discount);
+            $paidAmount = isset($data['amount_received']) ? (float)$data['amount_received'] : 0;
+            $dueAmount = max(0, $totalAmount - $paidAmount);
+            
+            $paymentStatus = 'pending';
+            if ($dueAmount <= 0) $paymentStatus = 'paid';
+            else if ($paidAmount > 0) $paymentStatus = 'partial';
+            
+            // Update Member's plan and dates
+            $member->update([
+                'plan_id' => $plan->id,
+                'joining_date' => $data['start_date'],
+                'plan_amount' => $planAmount,
+                'discount' => $discount,
+                'total_amount' => $totalAmount,
+                'status' => 'active', // Ensure active status if renewed
+            ]);
+            
+            // Create NEW Payment record for this renewal
+            Payment::create([
+                'member_id' => $member->id,
+                'gym_id' => $gymId,
+                'total_amount' => $totalAmount,
+                'paid_amount' => $paidAmount,
+                'due_amount' => $dueAmount,
+                'payment_date' => $paidAmount > 0 ? now()->toDateString() : null,
+                'status' => $paymentStatus,
+            ]);
+
+            DB::commit();
+            return $member->load(['user', 'plan', 'trainer', 'payments']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('MemberService@renewPlan Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
     public function deleteMember(int $id, int $gymId)
     {
         DB::beginTransaction();

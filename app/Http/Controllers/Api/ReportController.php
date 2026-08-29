@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 use App\Models\Member;
+use App\Models\Expense;
+use App\Models\Attendance;
 use App\Models\Plan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +18,13 @@ class ReportController extends Controller
     {
         try {
             $gymId = $request->user()->gym_id;
-            $range = $request->query('range', 'week'); // week, month, quarter, year
-            $timezone = 'Asia/Kolkata'; // Assuming IST as per earlier context
+            $range = $request->query('range', 'week');
+            $timezone = 'Asia/Kolkata';
 
             $data = $this->aggregateData($gymId, $range, $timezone);
             
             if ($request->query('export') === 'true') {
-                return $this->exportCsv($data, $range);
+                return $this->exportCsv($data, $request->query('type', 'all'), $range);
             }
 
             return response()->json([
@@ -54,89 +56,148 @@ class ReportController extends Controller
                 break;
             case 'week':
             default:
-                $startDate = $now->copy()->startOfWeek(); // default starts on Monday
+                $startDate = $now->copy()->startOfWeek();
                 $endDate = $now->copy()->endOfWeek();
                 break;
         }
 
-        // Fetch Raw Data within timeframe
-        $payments = Payment::with('member.user')
-            ->where('gym_id', $gymId)
+        // Fetch Data
+        $payments = Payment::with('member.plan')->where('gym_id', $gymId)
             ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
             ->get();
             
         $members = Member::where('gym_id', $gymId)
             ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
             ->get();
+            
+        $expenses = Expense::where('gym_id', $gymId)
+            ->whereBetween('expense_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
+            
+        $attendances = Attendance::where('gym_id', $gymId)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->get();
 
-        // Initialize buckets
-        $buckets = [];
+        // 1. Top Stats
+        $totalPayments = $payments->sum('paid_amount');
+        $totalSales = $payments->sum('total_amount');
+        $newMembersCount = $members->count();
+        $totalExpenses = $expenses->sum('amount');
         
-        if ($range === 'week') {
-            $days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            foreach ($days as $day) {
-                $buckets[$day] = ['label' => $day, 'collected' => 0, 'sell' => 0, 'new_members' => 0, 'breakdown' => []];
+        $totalAttendanceRecords = $attendances->count();
+        $presentCount = $attendances->where('status', 'P')->count();
+        $attendanceRate = $totalAttendanceRecords > 0 ? round(($presentCount / $totalAttendanceRecords) * 100, 1) : 0;
+
+        $topStats = [
+            'total_payments' => $totalPayments,
+            'total_sales' => $totalSales,
+            'new_members' => $newMembersCount,
+            'attendance_rate' => $attendanceRate,
+            'total_expenses' => $totalExpenses
+        ];
+
+        // 2. Time-series Data Setup
+        $timeseries = [];
+        $currentDate = $startDate->copy();
+        
+        if ($range === 'week' || $range === 'month') {
+            while ($currentDate->lte($endDate)) {
+                $key = $currentDate->format('Y-m-d');
+                $label = $currentDate->format('d M Y');
+                $timeseries[$key] = $this->emptyBucket($label);
+                $currentDate->addDay();
             }
-        } elseif ($range === 'month') {
-            $daysInMonth = $now->daysInMonth;
-            for ($i = 1; $i <= $daysInMonth; $i++) {
-                $buckets[(string)$i] = ['label' => (string)$i, 'collected' => 0, 'sell' => 0, 'new_members' => 0, 'breakdown' => []];
-            }
-        } elseif ($range === 'quarter') {
-            $months = [];
-            for ($i = 0; $i < 3; $i++) {
-                $m = $startDate->copy()->addMonths($i)->format('M'); // Jan, Feb, etc.
-                $buckets[$m] = ['label' => $m, 'collected' => 0, 'sell' => 0, 'new_members' => 0, 'breakdown' => []];
-            }
-        } elseif ($range === 'year') {
-            $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            foreach ($months as $m) {
-                $buckets[$m] = ['label' => $m, 'collected' => 0, 'sell' => 0, 'new_members' => 0, 'breakdown' => []];
+        } elseif ($range === 'quarter' || $range === 'year') {
+            while ($currentDate->lte($endDate)) {
+                $key = $currentDate->format('Y-m');
+                $label = $currentDate->format('M Y');
+                $timeseries[$key] = $this->emptyBucket($label);
+                $currentDate->addMonth();
             }
         }
 
-        // Aggregate Payments
+        // Fill Time-series
         foreach ($payments as $p) {
             $date = Carbon::parse($p->created_at)->timezone($timezone);
-            $key = $this->getBucketKey($date, $range);
+            $key = ($range === 'week' || $range === 'month') ? $date->format('Y-m-d') : $date->format('Y-m');
             
-            if (isset($buckets[$key])) {
-                $buckets[$key]['collected'] += (float)$p->paid_amount;
-                $buckets[$key]['sell'] += (float)$p->total_amount;
-                
-                $buckets[$key]['breakdown'][] = [
-                    'name' => $p->member->user->name ?? 'Unknown',
-                    'mobile' => $p->member->user->mobile ?? 'N/A',
-                    'paid' => (float)$p->paid_amount,
-                    'total' => (float)$p->total_amount,
-                    'date' => $date->format('d M Y, h:i A')
-                ];
+            if (isset($timeseries[$key])) {
+                $timeseries[$key]['collected'] += (float)$p->paid_amount;
+                $timeseries[$key]['total_sales'] += (float)$p->total_amount;
+                // Assuming all sales are plan sales for now, no other sales.
+                $timeseries[$key]['plan_sales'] += (float)$p->total_amount;
+                $timeseries[$key]['other_sales'] += 0; 
+                // Mock refunds to 0
+                $timeseries[$key]['refunds'] += 0;
+                $timeseries[$key]['net_payments'] += (float)$p->paid_amount;
             }
         }
-
-        // Aggregate Members
+        
         foreach ($members as $m) {
             $date = Carbon::parse($m->created_at)->timezone($timezone);
-            $key = $this->getBucketKey($date, $range);
-            
-            if (isset($buckets[$key])) {
-                $buckets[$key]['new_members']++;
+            $key = ($range === 'week' || $range === 'month') ? $date->format('Y-m-d') : $date->format('Y-m');
+            if (isset($timeseries[$key])) {
+                $timeseries[$key]['new_members']++;
             }
         }
 
-        return array_values($buckets);
+        // 3. Aggregate Expenses by Category
+        $expensesSummary = [];
+        foreach ($expenses as $e) {
+            $cat = $e->category ?: 'Other';
+            if (!isset($expensesSummary[$cat])) {
+                $expensesSummary[$cat] = 0;
+            }
+            $expensesSummary[$cat] += (float)$e->amount;
+        }
+        
+        $expensesFormatted = [];
+        foreach ($expensesSummary as $cat => $amount) {
+            $expensesFormatted[] = ['category' => $cat, 'amount' => $amount];
+        }
+
+        // 4. Sales by Plan
+        $salesByPlan = [];
+        foreach ($payments as $p) {
+            if ($p->member && $p->member->plan) {
+                $planName = $p->member->plan->plan_group_name . ' (' . $p->member->plan->duration_months . 'M)';
+                if (!isset($salesByPlan[$planName])) {
+                    $salesByPlan[$planName] = ['members' => 0, 'sales' => 0];
+                }
+                $salesByPlan[$planName]['members'] += 1;
+                $salesByPlan[$planName]['sales'] += (float)$p->total_amount;
+            }
+        }
+        
+        $salesByPlanFormatted = [];
+        foreach ($salesByPlan as $planName => $d) {
+            $salesByPlanFormatted[] = ['plan_name' => $planName, 'members' => $d['members'], 'sales' => $d['sales']];
+        }
+
+        return [
+            'top_stats' => $topStats,
+            'timeseries' => array_values($timeseries),
+            'expenses_summary' => $expensesFormatted,
+            'sales_by_plan' => $salesByPlanFormatted
+        ];
     }
 
-    private function getBucketKey($date, $range)
-    {
-        if ($range === 'week') return $date->format('D'); // Mon, Tue...
-        if ($range === 'month') return $date->format('j'); // 1, 2, 3...
-        return $date->format('M'); // Jan, Feb... (for Quarter and Year)
+    private function emptyBucket($label) {
+        return [
+            'date' => $label,
+            'collected' => 0,
+            'refunds' => 0,
+            'net_payments' => 0,
+            'total_sales' => 0,
+            'plan_sales' => 0,
+            'other_sales' => 0,
+            'new_members' => 0
+        ];
     }
 
-    private function exportCsv($data, $range)
+    private function exportCsv($data, $type, $range)
     {
-        $filename = "report_{$range}_" . date('Ymd_His') . ".csv";
+        $filename = "report_{$type}_{$range}_" . date('Ymd_His') . ".csv";
         $headers = [
             "Content-type"        => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
@@ -145,20 +206,59 @@ class ReportController extends Controller
             "Expires"             => "0"
         ];
 
-        $callback = function() use ($data, $range) {
+        $callback = function() use ($data, $type) {
             $file = fopen('php://output', 'w');
             
-            // Write Headers
-            fputcsv($file, ['Period', 'Collected Payments', 'Total Sell', 'New Members']);
-            
-            // Write Data
-            foreach ($data as $row) {
-                fputcsv($file, [
-                    $row['label'],
-                    $row['collected'],
-                    $row['sell'],
-                    $row['new_members']
-                ]);
+            if ($type === 'all') {
+                fputcsv($file, ['=== TOP STATS ===']);
+                fputcsv($file, ['Total Payments', 'Total Sales', 'New Members', 'Attendance Rate', 'Total Expenses']);
+                fputcsv($file, [$data['top_stats']['total_payments'], $data['top_stats']['total_sales'], $data['top_stats']['new_members'], $data['top_stats']['attendance_rate'].'%', $data['top_stats']['total_expenses']]);
+                
+                fputcsv($file, []);
+                fputcsv($file, ['=== PAYMENTS ===']);
+                fputcsv($file, ['Date', 'Collected Payments', 'Refunds', 'Net Payments']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['collected'], $row['refunds'], $row['net_payments']]);
+                }
+                
+                fputcsv($file, []);
+                fputcsv($file, ['=== SALES ===']);
+                fputcsv($file, ['Date', 'Total Sales', 'Plan Sales', 'Other Sales']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['total_sales'], $row['plan_sales'], $row['other_sales']]);
+                }
+                
+                fputcsv($file, []);
+                fputcsv($file, ['=== NEW MEMBERS ===']);
+                fputcsv($file, ['Date', 'New Members']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['new_members']]);
+                }
+            } elseif ($type === 'payments') {
+                fputcsv($file, ['Date', 'Collected Payments', 'Refunds', 'Net Payments']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['collected'], $row['refunds'], $row['net_payments']]);
+                }
+            } elseif ($type === 'sales') {
+                fputcsv($file, ['Date', 'Total Sales', 'Plan Sales', 'Other Sales']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['total_sales'], $row['plan_sales'], $row['other_sales']]);
+                }
+            } elseif ($type === 'members') {
+                fputcsv($file, ['Date', 'New Members']);
+                foreach ($data['timeseries'] as $row) {
+                    fputcsv($file, [$row['date'], $row['new_members']]);
+                }
+            } elseif ($type === 'expenses') {
+                fputcsv($file, ['Category', 'Amount']);
+                foreach ($data['expenses_summary'] as $row) {
+                    fputcsv($file, [$row['category'], $row['amount']]);
+                }
+            } elseif ($type === 'plans') {
+                fputcsv($file, ['Plan Name', 'Members', 'Sales']);
+                foreach ($data['sales_by_plan'] as $row) {
+                    fputcsv($file, [$row['plan_name'], $row['members'], $row['sales']]);
+                }
             }
             
             fclose($file);

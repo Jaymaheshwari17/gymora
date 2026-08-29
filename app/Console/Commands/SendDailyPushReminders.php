@@ -99,6 +99,7 @@ class SendDailyPushReminders extends Command
                 }
             }
         }
+        }
 
         // ================= EVENING NOTIFICATIONS =================
         if ($type === 'evening' || $type === 'all') {

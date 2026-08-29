@@ -142,6 +142,81 @@
         
     </div>
     
+    <!-- Gym Profile Settings Card (Only for Owners) -->
+    <div id="gym-profile-section" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mt-8 hidden">
+        <h2 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <i class="fa-solid fa-building text-indigo-600"></i> Gym Details
+        </h2>
+        
+        <form id="gym-form" onsubmit="updateGymProfile(event)">
+            <!-- Gym Logo -->
+            <div class="flex items-center gap-5 mb-6">
+                <div class="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center border border-gray-200 overflow-hidden shadow-sm">
+                    <img id="gym-logo-preview" src="" class="w-full h-full object-cover hidden">
+                    <i id="gym-logo-icon" class="fa-solid fa-dumbbell text-2xl text-indigo-300"></i>
+                </div>
+                <div>
+                    <label class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors shadow-sm inline-flex items-center">
+                        <i class="fa-solid fa-camera mr-1.5"></i> Upload Gym Logo
+                        <input type="file" id="gym_logo" name="logo" class="hidden" accept="image/*" onchange="previewGymLogo(event)">
+                    </label>
+                    <p class="text-[10px] text-gray-400 mt-2 font-medium">Recommended: Square image. JPG/PNG.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Gym Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Gym Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="gym_name" name="gym_name" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="Enter Gym Name">
+                    <p id="error-gym_name" class="text-red-500 text-xs mt-1.5 hidden"></p>
+                </div>
+
+                <!-- Owner Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Owner Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="gym_owner_name" name="owner_name" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="Owner Name">
+                    <p id="error-owner_name" class="text-red-500 text-xs mt-1.5 hidden"></p>
+                </div>
+
+                <!-- Contact Number -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Gym Contact Number</label>
+                    <input type="text" id="gym_contact_number" name="contact_number" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="Contact Number">
+                </div>
+
+                <!-- GST Number -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">GST / Tax Number</label>
+                    <input type="text" id="gym_gst_number" name="gst_number" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="GSTIN">
+                </div>
+
+                <!-- Instagram Link -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Instagram Link</label>
+                    <input type="url" id="gym_instagram" name="instagram_link" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="https://instagram.com/...">
+                </div>
+
+                <!-- Facebook Link -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Facebook Link</label>
+                    <input type="url" id="gym_facebook" name="facebook_link" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="https://facebook.com/...">
+                </div>
+
+                <!-- Gym Address (Full Width) -->
+                <div class="md:col-span-2 lg:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Gym Address</label>
+                    <textarea id="gym_address" name="address" rows="3" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 outline-none text-sm" placeholder="Full address for invoices"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 border-t border-gray-100 pt-5 text-right">
+                <button type="submit" id="btn-gym-submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition shadow-md shadow-indigo-600/20 disabled:opacity-70 flex items-center gap-2 ml-auto">
+                    <span>Save Gym Details</span>
+                </button>
+            </div>
+        </form>
+    </div>
     <!-- Bottom spacing -->
     <div class="h-10"></div>
 </div>
@@ -358,6 +433,156 @@
             btn.disabled = false;
         }
     }
+    // Gym Profile Image Preview
+    function previewGymLogo(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('gym-logo-preview').src = e.target.result;
+                document.getElementById('gym-logo-preview').classList.remove('hidden');
+                document.getElementById('gym-logo-icon').classList.add('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Load Gym Profile
+    async function loadGymProfile() {
+        // Show for owner or gym_owner roles
+        const userRole = user?.role || '';
+        if (!user || (userRole !== 'owner' && userRole !== 'gym_owner')) {
+            return; // Only hide for non-owners
+        }
+        
+        document.getElementById('gym-profile-section').classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/settings/gym', {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                }
+            });
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                const gym = result.data;
+                document.getElementById('gym_name').value = gym.gym_name || '';
+                document.getElementById('gym_owner_name').value = gym.owner_name || '';
+                document.getElementById('gym_contact_number').value = gym.contact_number || '';
+                document.getElementById('gym_gst_number').value = gym.gst_number || '';
+                document.getElementById('gym_instagram').value = gym.instagram_link || '';
+                document.getElementById('gym_facebook').value = gym.facebook_link || '';
+                document.getElementById('gym_address').value = gym.address || '';
+                
+                if (gym.logo_url) {
+                    document.getElementById('gym-logo-preview').src = gym.logo_url;
+                    document.getElementById('gym-logo-preview').classList.remove('hidden');
+                    document.getElementById('gym-logo-icon').classList.add('hidden');
+                }
+            }
+        } catch(e) {
+            console.error('Error loading gym profile', e);
+        }
+    }
+
+    // Update Gym Profile
+    async function updateGymProfile(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btn-gym-submit');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('gym_name', document.getElementById('gym_name').value);
+        formData.append('owner_name', document.getElementById('gym_owner_name').value);
+        formData.append('contact_number', document.getElementById('gym_contact_number').value);
+        formData.append('gst_number', document.getElementById('gym_gst_number').value);
+        formData.append('instagram_link', document.getElementById('gym_instagram').value);
+        formData.append('facebook_link', document.getElementById('gym_facebook').value);
+        formData.append('address', document.getElementById('gym_address').value);
+        
+        const logoInput = document.getElementById('gym_logo');
+        if (logoInput.files.length > 0) {
+            formData.append('logo', logoInput.files[0]);
+        }
+
+        try {
+            const response = await fetch('/api/settings/gym', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showSuccess('Gym Details saved successfully!');
+                
+                // Update sidebar gym name instantly
+                const sidebarName = document.getElementById('sidebar-logo-gym-name');
+                if (sidebarName) sidebarName.textContent = data.data.gym_name;
+
+                // Update sidebar logo instantly
+                if (data.data.logo_url) {
+                    const sbLogoImg = document.getElementById('sidebar-gym-logo-img');
+                    const sbLogoIcon = document.getElementById('sidebar-gym-logo-icon');
+                    if (sbLogoImg && sbLogoIcon) {
+                        sbLogoImg.src = data.data.logo_url;
+                        sbLogoImg.style.display = 'block';
+                        sbLogoIcon.style.display = 'none';
+                    }
+                }
+
+                // Update owner user object locally
+                user.name = data.data.owner_name;
+                if(user.gym) {
+                    user.gym.name = data.data.gym_name;
+                    if (data.data.logo_url) {
+                        user.gym.logo = data.data.logo_url;
+                    }
+                }
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                const topbarNameEl = document.getElementById('topbar-name');
+                if (topbarNameEl) topbarNameEl.textContent = user.name;
+            } else {
+                showError(data.message || 'Failed to save gym details.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('An error occurred. Please try again.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        // If user is already loaded from localStorage, call immediately
+        if (window.user || (typeof user !== 'undefined' && user)) {
+            loadGymProfile();
+        } else {
+            // Fallback: fetch from API
+            try {
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                if (token) {
+                    const res = await fetch('/api/user', { headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    if (data.success && data.data.role === 'owner') {
+                        document.getElementById('gym-profile-section').classList.remove('hidden');
+                        loadGymProfile();
+                    }
+                }
+            } catch(e) {}
+        }
+    });
 </script>
 @endpush
 @endsection

@@ -123,6 +123,32 @@ class MemberController extends Controller
             return $this->errorResponse('Failed to update member.', [], 500);
         }
     }
+    public function renew(Request $request, $id)
+    {
+        try {
+            if (!in_array($request->user()->role, ['owner', 'staff'])) {
+                return $this->errorResponse('Unauthorized.', [], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'plan_id' => 'required|exists:plans,id',
+                'start_date' => 'required|date',
+                'discount' => 'nullable|numeric|min:0',
+                'amount_received' => 'nullable|numeric|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation Error', $validator->errors(), 422);
+            }
+
+            $member = $this->memberService->renewPlan($id, $request->user()->gym_id, $request->all());
+            return $this->successResponse('Member renewed successfully', $member);
+        } catch (Exception $e) {
+            Log::error('MemberController@renew Exception: ' . $e->getMessage());
+            return $this->errorResponse('Failed to renew member.', [], 500);
+        }
+    }
+
     public function destroy(Request $request, $id)
     {
         try {

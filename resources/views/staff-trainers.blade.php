@@ -200,13 +200,23 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-gray-100">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password <span class="text-red-500 required-star">*</span></label>
-                            <input type="password" id="password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <div class="relative">
+                                <input type="password" id="password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                                <button type="button" onclick="togglePasswordVisibility('password', 'eye-icon-1')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i id="eye-icon-1" class="fa-solid fa-eye-slash"></i>
+                                </button>
+                            </div>
                             <p class="text-[10px] text-gray-500 mt-1" id="password-hint">Min 8 chars, letters, numbers & symbols</p>
                             <p id="error-password" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span class="text-red-500 required-star">*</span></label>
-                            <input type="password" id="password_confirmation" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <div class="relative">
+                                <input type="password" id="password_confirmation" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                                <button type="button" onclick="togglePasswordVisibility('password_confirmation', 'eye-icon-2')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i id="eye-icon-2" class="fa-solid fa-eye-slash"></i>
+                                </button>
+                            </div>
                             <p id="error-password_confirmation" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
                     </div>
@@ -590,6 +600,19 @@
 
     // Initial Load
     document.addEventListener('DOMContentLoaded', loadTeam);
+    function togglePasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    }
 </script>
 <style>
     .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }

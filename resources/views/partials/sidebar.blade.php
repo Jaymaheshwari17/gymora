@@ -1,14 +1,15 @@
 <!-- Sidebar -->
 <aside class="w-[260px] bg-white border-r border-gray-100 flex flex-col hidden md:flex shrink-0">
     <!-- Logo -->
-    <div class="h-20 flex items-center px-6">
-        <div class="text-xl font-bold tracking-tight flex items-center gap-2 w-full">
-            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm">
-                <i class="fa-solid fa-dumbbell text-sm"></i>
+    <div style="padding-top: 32px; padding-bottom: 16px; padding-left: 24px; padding-right: 24px; display: flex; align-items: center;">
+        <div style="font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; gap: 12px; width: 100%;">
+            <div style="width: 40px; height: 40px; background-color: #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); overflow: hidden;">
+                <img id="sidebar-gym-logo-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                <i id="sidebar-gym-logo-icon" class="fa-solid fa-dumbbell" style="font-size: 16px;"></i>
             </div>
-            <div class="flex-1 min-w-0 flex flex-col justify-center overflow-hidden">
-                <span id="sidebar-logo-gym-name" class="text-gray-900 truncate block leading-tight">GYMORA</span>
-                <span class="text-[9px] text-gray-500 font-medium tracking-wide truncate block mt-0.5">Gym Management System</span>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden;">
+                <span id="sidebar-logo-gym-name" style="color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 1.25; font-size: 1.5rem;">GYMORA</span>
+                <span style="font-size: 10px; color: #6b7280; font-weight: 500; letter-spacing: 0.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 2px;">Gym Management System</span>
             </div>
         </div>
     </div>
@@ -32,6 +33,11 @@
                 <span class="text-sm">Staff / Trainers</span>
             </div>
             <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </a>
+         <!-- Batches -->
+        <a href="/batches" class="flex items-center gap-4 pl-6 pr-4 py-3 {{ request()->is('batches*') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 rounded-r-xl' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-l-4 border-transparent' }} transition-all font-bold mr-4">
+            <i class="fa-solid fa-layer-group w-5 text-lg"></i>
+            <span class="text-sm">Batches</span>
         </a>
         <!-- Plans -->
         <a href="/plans" class="flex items-center gap-4 pl-6 pr-4 py-3 {{ request()->is('plans*') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 rounded-r-xl' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-l-4 border-transparent' }} transition-all font-bold mr-4">
@@ -68,10 +74,15 @@
             <i class="fa-solid fa-chart-line w-5 text-lg"></i>
             <span class="text-sm">Reports</span>
         </a>
+        <!-- Settings -->
+        <!-- <a href="/settings" class="flex items-center gap-4 pl-6 pr-4 py-3 {{ request()->is('settings*') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 rounded-r-xl' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-l-4 border-transparent' }} transition-all font-bold mr-4">
+            <i class="fa-solid fa-gear w-5 text-lg"></i>
+            <span class="text-sm">Settings</span>
+        </a> -->
     </nav>
     
     <!-- Bottom Widget -->
-    <div class="p-4 mt-auto">
+    <!-- <div class="p-4 mt-auto">
         <div class="bg-indigo-50/50 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:shadow-md transition-all border border-indigo-100 shadow-sm relative overflow-hidden group">
             <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div class="flex items-center gap-3">
@@ -85,5 +96,5 @@
             </div>
             <i class="fa-solid fa-chevron-right text-indigo-400 text-[10px]"></i>
         </div>
-    </div>
+    </div> -->
 </aside>

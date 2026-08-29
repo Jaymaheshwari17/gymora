@@ -322,11 +322,22 @@ class DashboardController extends Controller
 
             // Fallback safety to ensure total_days is at least present_days
             $totalDaysSoFar = max($totalDaysSoFar, $presentDays);
+
+            // Get full history for the current month
+            $historyRecords = Attendance::where('member_id', $member->id)
+                ->whereMonth('date', $currentMonth)
+                ->whereYear('date', $currentYear)
+                ->orderBy('date', 'desc')
+                ->get(['date', 'status', 'created_at']);
+
+            $is_present_today = $historyRecords->where('date', now()->format('Y-m-d'))->where('status', 'P')->count() > 0;
                 
             $attendance = [
                 'present_days' => $presentDays,
                 'total_days_so_far' => $totalDaysSoFar,
-                'streak' => 0 // To be implemented with complex query if needed, keeping 0 for now
+                'streak' => 0, // To be implemented with complex query if needed, keeping 0 for now
+                'is_present_today' => $is_present_today,
+                'history' => $historyRecords
             ];
 
             // Active Plans
@@ -342,6 +353,7 @@ class DashboardController extends Controller
 
             return $this->successResponse('Member stats retrieved', [
                 'profile' => [
+                    'member_id' => $member->id,
                     'name' => $user->name,
                     'photo' => $user->photo,
                     'joining_date' => $member->joining_date,

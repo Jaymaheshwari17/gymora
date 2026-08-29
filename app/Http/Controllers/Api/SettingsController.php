@@ -90,4 +90,93 @@ class SettingsController extends Controller
             return $this->errorResponse('Failed to change password.', [], 500);
         }
     }
+    public function getGymProfile(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if ($user->role !== 'owner' || !$user->gym_id) {
+                return $this->errorResponse('Unauthorized', [], 403);
+            }
+
+            $gym = \App\Models\Gym::find($user->gym_id);
+            if (!$gym) {
+                return $this->errorResponse('Gym not found', [], 404);
+            }
+
+            return $this->successResponse('Gym profile retrieved', [
+                'gym_name' => $gym->name,
+                'owner_name' => $user->name,
+                'contact_number' => $gym->contact_number ?? $user->mobile,
+                'email' => $user->email,
+                'address' => $gym->address,
+                'gst_number' => $gym->gst_number,
+                'instagram_link' => $gym->instagram_link,
+                'facebook_link' => $gym->facebook_link,
+                'logo_url' => $gym->logo ? url($gym->logo) : null
+            ]);
+        } catch (Exception $e) {
+            Log::error('SettingsController@getGymProfile: ' . $e->getMessage());
+            return $this->errorResponse('Failed to retrieve profile', [], 500);
+        }
+    }
+
+    public function updateGymProfile(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if ($user->role !== 'owner' || !$user->gym_id) {
+                return $this->errorResponse('Unauthorized', [], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'gym_name' => 'required|string|max:150',
+                'owner_name' => 'required|string|max:100',
+                'contact_number' => 'nullable|string|max:20',
+                'address' => 'nullable|string',
+                'gst_number' => 'nullable|string|max:50',
+                'instagram_link' => 'nullable|string|max:255',
+                'facebook_link' => 'nullable|string|max:255',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation Error', $validator->errors(), 422);
+            }
+
+            $gym = \App\Models\Gym::find($user->gym_id);
+            
+            $gym->name = $request->input('gym_name');
+            $gym->contact_number = $request->input('contact_number');
+            $gym->address = $request->input('address');
+            $gym->gst_number = $request->input('gst_number');
+            $gym->instagram_link = $request->input('instagram_link');
+            $gym->facebook_link = $request->input('facebook_link');
+
+            if ($request->hasFile('logo')) {
+                $file = $request->file('logo');
+                $filename = 'gym_' . $gym->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/gyms'), $filename);
+                $gym->logo = 'uploads/gyms/' . $filename;
+            }
+
+            $gym->save();
+
+            if ($user->name !== $request->input('owner_name')) {
+                $user->name = $request->input('owner_name');
+                $user->save();
+            }
+
+            return $this->successResponse('Gym Profile updated successfully', [
+                'gym_name' => $gym->name,
+                'owner_name' => $user->name,
+                'logo_url' => $gym->logo ? url($gym->logo) : null
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('SettingsController@updateGymProfile: ' . $e->getMessage());
+            return $this->errorResponse('Failed to update gym profile', [], 500);
+        }
+    }
 }

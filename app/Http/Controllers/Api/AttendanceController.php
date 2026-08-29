@@ -33,13 +33,15 @@ class AttendanceController extends Controller
 
         $result = $members->map(function ($member) use ($attendances) {
             $attendance = $attendances->get($member->id);
+            $photo = $member->user->photo;
+            $photoUrl = $photo ? url($photo) : 'https://ui-avatars.com/api/?name=' . urlencode($member->user->name ?? 'U') . '&background=f3f4f6&color=374151';
+
             return [
                 'id' => $member->id,
                 'name' => $member->user->name ?? 'Unknown',
                 'plan' => $member->plan->plan_group_name ?? 'No Plan',
-                'photo_url' => 'https://ui-avatars.com/api/?name=' . urlencode($member->user->name ?? 'U') . '&background=f3f4f6&color=374151',
-                'is_present' => $attendance && $attendance->status === 'P',
-                'check_in_time' => $attendance ? Carbon::parse($attendance->check_in_time)->format('h:i A') : null,
+                'photo_url' => $photoUrl,
+                'status' => $attendance ? $attendance->status : null,
             ];
         });
 
@@ -49,53 +51,41 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Toggle attendance for a member
-     */
     public function toggleAttendance(Request $request)
     {
         $request->validate([
             'member_id' => 'required|exists:members,id',
             'date' => 'required|date',
-            'is_present' => 'required|boolean'
+            'status' => 'required|in:P,A'
         ]);
 
         $gymId = Auth::user()->gym_id;
         $memberId = $request->member_id;
         $date = $request->date;
-        $isPresent = $request->is_present;
+        $status = $request->status;
 
         $attendance = Attendance::where('member_id', $memberId)
             ->whereDate('date', $date)
             ->first();
 
-        if ($isPresent) {
-            if (!$attendance) {
-                Attendance::create([
-                    'member_id' => $memberId,
-                    'gym_id' => $gymId,
-                    'date' => $date,
-                    'status' => 'P',
-                    'marked_by' => Auth::id(),
-                    'check_in_time' => Carbon::now('Asia/Kolkata')->format('H:i:s')
-                ]);
-            } else {
-                $attendance->update([
-                    'status' => 'P',
-                    'marked_by' => Auth::id(),
-                    'check_in_time' => $attendance->check_in_time ?? Carbon::now('Asia/Kolkata')->format('H:i:s')
-                ]);
-            }
+        if (!$attendance) {
+            Attendance::create([
+                'member_id' => $memberId,
+                'gym_id' => $gymId,
+                'date' => $date,
+                'status' => $status,
+                'marked_by' => Auth::id()
+            ]);
         } else {
-            if ($attendance) {
-                // If unmarked, delete or mark as absent. We'll delete it to keep DB clean for "unmarked".
-                $attendance->delete();
-            }
+            $attendance->update([
+                'status' => $status,
+                'marked_by' => Auth::id()
+            ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => $isPresent ? 'Attendance marked as present' : 'Attendance removed successfully'
+            'message' => 'Attendance marked successfully'
         ]);
     }
 }

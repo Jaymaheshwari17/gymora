@@ -2,7 +2,7 @@
 
 @section('dashboard-content')
 <div class="flex-1 overflow-y-auto p-8 bg-[#f8f9fc]">
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="space-y-6">
 
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -291,3 +291,4 @@ document.addEventListener('DOMContentLoaded', fetchPayments);
 </script>
 @endpush
 @endsection
+

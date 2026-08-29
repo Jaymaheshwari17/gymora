@@ -39,6 +39,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/members', [\App\Http\Controllers\Api\MemberController::class, 'store']);
     Route::put('/members/{id}', [\App\Http\Controllers\Api\MemberController::class, 'update']);
     Route::delete('/members/{id}', [\App\Http\Controllers\Api\MemberController::class, 'destroy']);
+    Route::post('/members/{id}/renew', [\App\Http\Controllers\Api\MemberController::class, 'renew']);
+    
+    // Gym Settings Routes
+    Route::get('/settings/gym', [\App\Http\Controllers\Api\SettingsController::class, 'getGymProfile']);
+    Route::post('/settings/gym', [\App\Http\Controllers\Api\SettingsController::class, 'updateGymProfile']);
     
     // Attendance Routes
     Route::post('/attendance/mark', [\App\Http\Controllers\Api\AttendanceController::class, 'mark']);

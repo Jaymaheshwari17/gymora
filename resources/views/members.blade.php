@@ -2,7 +2,7 @@
 
 @section('dashboard-content')
 <div class="flex-1 overflow-y-auto p-8 bg-[#f8f9fc]">
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -34,6 +34,73 @@
             </tbody>
         </table>
     </div>
+    </div>
+</div>
+
+<!-- Renew Plan Modal -->
+<div id="renew-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" onclick="closeRenewModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900">Renew / Upgrade Plan</h3>
+                <p class="text-xs text-gray-500 font-medium mt-0.5" id="renew-member-name">Member Name</p>
+            </div>
+            <button onclick="closeRenewModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto flex-1">
+            <form id="renew-form" onsubmit="submitRenew(event)">
+                <input type="hidden" id="renew_member_id">
+                
+                <div class="space-y-4">
+                    <!-- Current Plan info -->
+                    <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-800 text-sm">
+                        <span class="font-bold">Current Plan:</span> <span id="renew-current-plan">None</span>
+                    </div>
+
+                    <!-- Select New Plan -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select New Plan <span class="text-red-500">*</span></label>
+                        <select id="renew_plan_id" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm" onchange="calculateRenewAmounts()">
+                            <option value="">Select Plan</option>
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Plan Start Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="renew_start_date" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Discount -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Discount (₹)</label>
+                            <input type="number" id="renew_discount" min="0" value="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm" oninput="calculateRenewAmounts()">
+                        </div>
+                        
+                        <!-- Paid Amount -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount Paid Now (₹) <span class="text-red-500">*</span></label>
+                            <input type="number" id="renew_paid" required min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-sm font-bold text-green-600">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+            <button type="button" onclick="closeRenewModal()" class="px-5 py-2 text-gray-600 hover:text-gray-900 font-semibold text-sm">Cancel</button>
+            <button type="submit" form="renew-form" id="btn-renew-submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition-colors">Confirm Renewal</button>
+        </div>
     </div>
 </div>
 
@@ -159,13 +226,23 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password <span class="text-red-500 password-req">*</span></label>
-                            <input type="password" id="password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <div class="relative">
+                                <input type="password" id="password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                                <button type="button" onclick="togglePasswordVisibility('password', 'eye-icon-1')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i id="eye-icon-1" class="fa-solid fa-eye-slash"></i>
+                                </button>
+                            </div>
                             <p class="text-[10px] text-gray-500 mt-1 font-medium" id="password-hint">Min 8 chars, containing letters, numbers & symbols.</p>
                             <p id="error-password" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span class="text-red-500 password-req">*</span></label>
-                            <input type="password" id="password_confirmation" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <div class="relative">
+                                <input type="password" id="password_confirmation" placeholder="••••••••" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                                <button type="button" onclick="togglePasswordVisibility('password_confirmation', 'eye-icon-2')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i id="eye-icon-2" class="fa-solid fa-eye-slash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -526,6 +603,9 @@
                     </td>
                     <td class="text-center">
                         <div class="flex justify-center gap-2">
+                            <button onclick='openRenewModal(${member.id}, "${user.name || 'Member'}", "${plan && plan.plan_group_name ? plan.plan_group_name + ' (' + plan.duration_months + 'M)' : 'None'}")' class="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition shadow-sm" title="Renew / Upgrade">
+                                <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                            </button>
                             <button onclick='viewMember(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition shadow-sm" title="View Details">
                                 <i class="fa-solid fa-eye text-sm"></i>
                             </button>
@@ -714,6 +794,100 @@
 
     function closeWizardModal() {
         document.getElementById('wizard-modal').classList.add('hidden');
+    }
+
+    // ---- Renew Plan Logic ----
+    function openRenewModal(id, memberName, currentPlanName) {
+        document.getElementById('renew-modal').classList.remove('hidden');
+        document.getElementById('renew_member_id').value = id;
+        document.getElementById('renew-member-name').textContent = memberName;
+        document.getElementById('renew-current-plan').textContent = currentPlanName || 'No Active Plan';
+        
+        // Default start date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('renew_start_date').value = today;
+        document.getElementById('renew_discount').value = 0;
+        
+        // Populate plan options
+        const select = document.getElementById('renew_plan_id');
+        select.innerHTML = '<option value="">Select Plan</option>';
+        plansData.forEach(plan => {
+            select.innerHTML += `<option value="${plan.id}" data-amount="${plan.amount}">${plan.display_name} - ₹${plan.amount}</option>`;
+        });
+        
+        document.getElementById('renew_paid').value = '';
+    }
+
+    function closeRenewModal() {
+        document.getElementById('renew-modal').classList.add('hidden');
+    }
+
+    function calculateRenewAmounts() {
+        const select = document.getElementById('renew_plan_id');
+        if (!select.value) {
+            document.getElementById('renew_paid').value = '';
+            return;
+        }
+        const option = select.options[select.selectedIndex];
+        const planAmount = parseFloat(option.getAttribute('data-amount')) || 0;
+        const discount = parseFloat(document.getElementById('renew_discount').value) || 0;
+        const net = Math.max(0, planAmount - discount);
+        document.getElementById('renew_paid').value = net;
+    }
+
+    async function submitRenew(e) {
+        e.preventDefault();
+        const id = document.getElementById('renew_member_id').value;
+        const payload = {
+            plan_id: document.getElementById('renew_plan_id').value,
+            start_date: document.getElementById('renew_start_date').value,
+            discount: document.getElementById('renew_discount').value || 0,
+            amount_received: document.getElementById('renew_paid').value || 0
+        };
+
+        const btn = document.getElementById('btn-renew-submit');
+        const origText = btn.textContent;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/members/${id}/renew`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showSuccess('Member renewed successfully! New payment recorded.');
+                closeRenewModal();
+                fetchMembers(); // refresh table and stats
+            } else {
+                showError(data.message || 'Failed to renew member.');
+            }
+        } catch (error) {
+            showError('Network error while renewing plan.');
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
+    }
+
+    function togglePasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
     }
 
     function changeStep(direction) {
@@ -998,3 +1172,4 @@
 </style>
 @endpush
 @endsection
+
