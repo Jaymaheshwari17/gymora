@@ -67,10 +67,38 @@ class DashboardController extends Controller
             // 5. Bottom Lists
             $recentMembers = Member::with(['user', 'plan', 'trainer'])
                 ->where('gym_id', $gymId)
-                ->where('created_at', '>=', now()->subDays(5)->startOfDay())
                 ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get();
+
+            // Today's Member Schedules / Workouts
+            $todaySchedule = Member::with(['user', 'batch'])
+                ->where('gym_id', $gymId)
+                ->where('status', 'active')
+                ->take(6)
+                ->get()
+                ->map(function ($m) use ($gymId) {
+                    $att = Attendance::where('gym_id', $gymId)
+                        ->where('member_id', $m->id)
+                        ->whereDate('date', today())
+                        ->first();
+                    $isCompleted = $att && $att->status === 'P';
+
+                    $timeStr = '7:00 AM – 8:00 AM';
+                    if ($m->batch && ($m->batch->start_time || $m->batch->end_time)) {
+                        $timeStr = ($m->batch->start_time ? date('g:i A', strtotime($m->batch->start_time)) : '') . ' – ' . 
+                                   ($m->batch->end_time ? date('g:i A', strtotime($m->batch->end_time)) : '');
+                    }
+
+                    return [
+                        'id' => $m->id,
+                        'name' => $m->user ? $m->user->name : 'Member',
+                        'photo' => $m->user ? $m->user->photo : null,
+                        'workout' => $m->plan ? $m->plan->plan_group_name : 'General Workout',
+                        'timing' => $timeStr,
+                        'status' => $isCompleted ? 'completed' : 'upcoming',
+                    ];
+                });
 
             $upcomingBirthdays = User::where('gym_id', $gymId)
                 ->where('role', 'member')
@@ -141,6 +169,7 @@ class DashboardController extends Controller
                 ],
                 'lists' => [
                     'recent_members' => $recentMembers,
+                    'today_schedule' => $todaySchedule,
                     'upcoming_birthdays' => $upcomingBirthdays,
                     'todays_birthdays' => $todaysBirthdays
                 ],
@@ -351,6 +380,25 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->first();
 
+            // Notifications for this member (distinct by title, latest first)
+            $memberNotifications = \App\Models\FcmNotification::where('user_id', $user->id)
+                ->latest()
+                ->get()
+                ->unique('title')
+                ->take(5)
+                ->values()
+                ->map(function ($n) {
+                    return [
+                        'id' => $n->id,
+                        'title' => $n->title,
+                        'message' => $n->body,
+                        'time' => $n->created_at->diffForHumans(),
+                        'data' => $n->data,
+                    ];
+                });
+
+            $isBirthdayToday = $user->dob && ($user->dob->month === now()->month && $user->dob->day === now()->day);
+
             return $this->successResponse('Member stats retrieved', [
                 'profile' => [
                     'member_id' => $member->id,
@@ -359,6 +407,8 @@ class DashboardController extends Controller
                     'joining_date' => $member->joining_date,
                     'status' => $member->status,
                 ],
+                'is_birthday_today' => $isBirthdayToday,
+                'notifications' => $memberNotifications,
                 'gym_name' => $user->gym ? $user->gym->name : 'My Gym',
                 'trainer' => $member->trainer ? [
                     'id' => $member->trainer->id,

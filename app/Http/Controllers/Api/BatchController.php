@@ -30,11 +30,43 @@ class BatchController extends Controller
     }
 
     /**
-     * Store a newly created batch.
+     * Store newly created batch(es).
      */
     public function store(Request $request)
     {
         try {
+            $user = $request->user();
+
+            // Check if multiple batches are provided
+            if ($request->has('batches') && is_array($request->input('batches'))) {
+                $validator = Validator::make($request->all(), [
+                    'batches' => 'required|array|min:1',
+                    'batches.*.name' => 'required|string|max:50',
+                    'batches.*.start_time' => 'nullable|date_format:H:i',
+                    'batches.*.end_time' => 'nullable|date_format:H:i|after:batches.*.start_time',
+                ]);
+
+                if ($validator->fails()) {
+                    return $this->errorResponse('Validation Error', $validator->errors(), 422);
+                }
+
+                $createdBatches = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $request) {
+                    $results = [];
+                    foreach ($request->input('batches') as $b) {
+                        $results[] = Batch::create([
+                            'gym_id' => $user->gym_id,
+                            'name' => $b['name'],
+                            'start_time' => $b['start_time'] ?? null,
+                            'end_time' => $b['end_time'] ?? null,
+                        ]);
+                    }
+                    return $results;
+                });
+
+                return $this->successResponse('Batches created successfully', $createdBatches, 201);
+            }
+
+            // Single batch creation fallback
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:50',
                 'start_time' => 'nullable|date_format:H:i',
@@ -45,8 +77,6 @@ class BatchController extends Controller
                 return $this->errorResponse('Validation Error', $validator->errors(), 422);
             }
 
-            $user = $request->user();
-            
             $batch = Batch::create([
                 'gym_id' => $user->gym_id,
                 'name' => $request->name,

@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\User;
+use App\Models\FcmNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -16,14 +18,14 @@ class SendDailyPushReminders extends Command
      *
      * @var string
      */
-    protected $signature = 'send:push-reminders {type=all}';
+    protected $signature = 'send:push-reminders {type=all} {--token= : Send a test notification to a specific Expo push token}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Sends automated Expo Push Notifications for Birthdays, Plan Expiries, and Overdue Fees';
+    protected $description = 'Sends automated push notifications for Birthdays, Plan Expiries, and Pending Fee reminders';
 
     /**
      * Execute the console command.
@@ -31,16 +33,33 @@ class SendDailyPushReminders extends Command
     public function handle()
     {
         $type = $this->argument('type');
-        $this->info('Starting ' . ucfirst($type) . ' Push Reminders job...');
+        $testToken = $this->option('token');
+        $this->info("==================================================");
+        $this->info("🚀 Starting {$type} Push Reminders job at " . now()->toDateTimeString());
+        $this->info("==================================================");
         $today = Carbon::today();
         
         $notificationsToSend = [];
 
-        // ================= MORNING NOTIFICATIONS =================
+        // Direct Test Mode (if --token is provided)
+        if ($testToken) {
+            $this->info("🔔 Sending direct test push notification to token: {$testToken}");
+            $testNotification = [
+                'to' => $testToken,
+                'title' => '🏋️ Gymora Live Push Test',
+                'body' => 'Congratulations! Push notification system is working perfectly on your device! 🎉',
+                'sound' => 'default',
+                'data' => ['type' => 'test'],
+            ];
+            $this->sendPushNotifications([$testNotification]);
+            return;
+        }
+
+        // ================= MORNING NOTIFICATIONS (8:00 AM) =================
         if ($type === 'morning' || $type === 'all') {
             
-            // 1. Birthdays (DOB is on the users table)
-        $birthdayMembers = Member::whereHas('user', function ($query) use ($today) {
+            // 1. Birthday Notifications (Users whose DOB is today)
+            $birthdayMembers = Member::whereHas('user', function ($query) use ($today) {
                 $query->whereMonth('dob', $today->month)
                       ->whereDay('dob', $today->day);
             })
@@ -48,125 +67,269 @@ class SendDailyPushReminders extends Command
             ->with(['user', 'gym'])
             ->get();
 
-        foreach ($birthdayMembers as $member) {
-            if ($member->user && $member->user->push_token) {
-                $gymName = $member->gym ? $member->gym->name : 'us';
-                $notificationsToSend[] = [
-                    'to' => $member->user->push_token,
-                    'title' => '🎉 Happy Birthday ' . $member->user->name . '!',
-                    'body' => 'Wishing you a fantastic day and a great workout from the ' . $gymName . ' team!',
-                    'sound' => 'default',
-                ];
-            }
-        }
+            $this->info("🎂 Birthday check: Found " . $birthdayMembers->count() . " active members celebrating birthday today.");
 
-        // 2. Expiry in 3 Days
-        $allMembers = Member::where('status', 'active')->with(['plan', 'user', 'gym'])->get();
-        foreach ($allMembers as $member) {
-            if ($member->plan && $member->joining_date) {
-                $endDate = Carbon::parse($member->joining_date)->addMonths($member->plan->duration_months);
-                if ($endDate->copy()->subDays(3)->isSameDay($today)) {
-                    if ($member->user && $member->user->push_token) {
+            foreach ($birthdayMembers as $member) {
+                if ($member->user) {
+                    $gymName = $member->gym ? $member->gym->name : 'Your Gym';
+                    $title = '🎉 Happy Birthday ' . $member->user->name . '!';
+                    $body = "Wishing you a fantastic day filled with health and strength from the {$gymName} team! 💪";
+
+                    // Save in-app notification
+                    $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'birthday']);
+                    $this->line("  ✓ Generated Birthday Wish for: {$member->user->name}");
+
+                    // Prepare push notification
+                    $token = $member->user->push_token ?? $member->user->fcm_device_token;
+                    if ($token) {
                         $notificationsToSend[] = [
-                            'to' => $member->user->push_token,
-                            'title' => '⚠️ Plan Expiring Soon',
-                            'body' => 'Your gym membership expires in 3 days. Please renew to continue without interruption.',
+                            'to' => $token,
+                            'title' => $title,
+                            'body' => $body,
                             'sound' => 'default',
+                            'data' => ['type' => 'birthday'],
                         ];
+                    } else {
+                        $this->warn("    (No push_token found in database for {$member->user->name} yet)");
                     }
                 }
             }
-        }
 
-        // 3. Fee Overdue (More than 7 days passed since joining or last payment, and due_amount > 0)
-        // For simplicity, checking latest payment of active members
-        foreach ($allMembers as $member) {
-            $latestPayment = Payment::where('member_id', $member->id)->orderBy('id', 'desc')->first();
-            $dueAmount = $latestPayment ? $latestPayment->due_amount : ($member->plan_amount - $member->discount);
-            
-            if ($dueAmount > 0) {
-                // If joining_date was more than 7 days ago
-                $joinDate = Carbon::parse($member->joining_date);
-                if ($today->diffInDays($joinDate) >= 7) {
-                    if ($member->user && $member->user->push_token) {
-                        $notificationsToSend[] = [
-                            'to' => $member->user->push_token,
-                            'title' => '💰 Fee Reminder',
-                            'body' => 'Gentle reminder: You have a pending fee of ₹' . $dueAmount . '. Please clear it soon.',
-                            'sound' => 'default',
-                        ];
+            // 2. Plan Expiry Reminders (Expiring Today, In 3 Days, or Expired Yesterday)
+            $activeMembers = Member::where('status', 'active')->with(['plan', 'user', 'gym'])->get();
+            $expiryCount = 0;
+
+            foreach ($activeMembers as $member) {
+                if ($member->plan && $member->joining_date && $member->user) {
+                    $gymName = $member->gym ? $member->gym->name : 'Your Gym';
+                    $endDate = Carbon::parse($member->joining_date)->addMonths($member->plan->duration_months);
+                    $token = $member->user->push_token ?? $member->user->fcm_device_token;
+
+                    // A) Expiring TODAY
+                    if ($endDate->isSameDay($today)) {
+                        $expiryCount++;
+                        $title = '🚨 Plan Expiring Today!';
+                        $body = "Hi {$member->user->name}, your gym membership at {$gymName} expires today. Please renew today to keep working out smoothly!";
+
+                        $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'plan_expiry_today']);
+                        $this->line("  ✓ Plan Expiring Today: {$member->user->name}");
+
+                        if ($token) {
+                            $notificationsToSend[] = [
+                                'to' => $token,
+                                'title' => $title,
+                                'body' => $body,
+                                'sound' => 'default',
+                                'data' => ['type' => 'plan_expiry_today'],
+                            ];
+                        }
+                    }
+                    // B) Expiring in 3 Days
+                    elseif ($endDate->copy()->subDays(3)->isSameDay($today)) {
+                        $expiryCount++;
+                        $title = '⚠️ Plan Expiring in 3 Days';
+                        $body = "Hi {$member->user->name}, your gym membership at {$gymName} expires in 3 days. Please renew to continue without interruption.";
+
+                        $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'plan_expiry_soon']);
+                        $this->line("  ✓ Plan Expiring in 3 Days: {$member->user->name}");
+
+                        if ($token) {
+                            $notificationsToSend[] = [
+                                'to' => $token,
+                                'title' => $title,
+                                'body' => $body,
+                                'sound' => 'default',
+                                'data' => ['type' => 'plan_expiry_soon'],
+                            ];
+                        }
+                    }
+                    // C) Expired 1 Day Ago
+                    elseif ($endDate->copy()->addDay()->isSameDay($today)) {
+                        $expiryCount++;
+                        $title = '⏳ Membership Plan Expired';
+                        $body = "Hi {$member->user->name}, your membership at {$gymName} has expired. Please visit the front desk to renew your plan.";
+
+                        $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'plan_expired']);
+                        $this->line("  ✓ Plan Expired Yesterday: {$member->user->name}");
+
+                        if ($token) {
+                            $notificationsToSend[] = [
+                                'to' => $token,
+                                'title' => $title,
+                                'body' => $body,
+                                'sound' => 'default',
+                                'data' => ['type' => 'plan_expired'],
+                            ];
+                        }
                     }
                 }
             }
-        }
+            $this->info("⏳ Plan Expiry check: Found {$expiryCount} members with upcoming or recent expiries.");
+
+            // 3. Pending Fee Reminders
+            $dueFeeCount = 0;
+            foreach ($activeMembers as $member) {
+                if ($member->user) {
+                    $latestPayment = Payment::where('member_id', $member->id)->orderBy('id', 'desc')->first();
+                    $dueAmount = $latestPayment ? (float)$latestPayment->due_amount : (float)max(0, $member->total_amount - ($member->discount ?? 0));
+
+                    if ($dueAmount > 0) {
+                        $dueFeeCount++;
+                        $gymName = $member->gym ? $member->gym->name : 'Your Gym';
+                        $title = '💰 Pending Fee Reminder';
+                        $body = "Hi {$member->user->name}, gentle reminder: you have a pending fee of ₹" . number_format($dueAmount) . " at {$gymName}. Please clear it soon.";
+
+                        $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'fee_pending', 'due_amount' => $dueAmount]);
+                        $this->line("  ✓ Fee Pending (₹" . number_format($dueAmount) . ") for: {$member->user->name}");
+
+                        $token = $member->user->push_token ?? $member->user->fcm_device_token;
+                        if ($token) {
+                            $notificationsToSend[] = [
+                                'to' => $token,
+                                'title' => $title,
+                                'body' => $body,
+                                'sound' => 'default',
+                                'data' => ['type' => 'fee_pending', 'due_amount' => $dueAmount],
+                            ];
+                        }
+                    }
+                }
+            }
+            $this->info("💰 Fee Pending check: Found {$dueFeeCount} members with pending dues.");
         }
 
-        // ================= EVENING NOTIFICATIONS =================
+        // ================= EVENING NOTIFICATIONS (9:00 PM) =================
         if ($type === 'evening' || $type === 'all') {
             
-            // 4. Owner Notifications (Business Summary)
-        $owners = \App\Models\User::where('role', 'owner')
-            ->whereNotNull('push_token')
-            ->where('status', 'active')
-            ->with('gym')
-            ->get();
+            // 4. Owner Notifications (Daily Revenue and Retention Summary)
+            $owners = User::where('role', 'owner')
+                ->where('status', 'active')
+                ->with('gym')
+                ->get();
 
-        foreach ($owners as $owner) {
-            $gymId = $owner->gym_id;
-            $gymName = $owner->gym ? $owner->gym->name : 'Your Gym';
+            $this->info("👔 Owner check: Found " . $owners->count() . " active gym owners.");
 
-            // Daily Revenue
-            $todayRevenue = Payment::where('gym_id', $gymId)
-                ->whereDate('payment_date', $today)
-                ->sum('paid_amount');
+            foreach ($owners as $owner) {
+                $gymId = $owner->gym_id;
+                $gymName = $owner->gym ? $owner->gym->name : 'Your Gym';
+                $token = $owner->push_token ?? $owner->fcm_device_token;
 
-            if ($todayRevenue > 0) {
-                $notificationsToSend[] = [
-                    'to' => $owner->push_token,
-                    'title' => '💰 Daily Revenue: ' . $gymName,
-                    'body' => 'You collected ₹' . number_format($todayRevenue) . ' today. Keep it up!',
-                    'sound' => 'default',
-                ];
-            }
+                // Daily Revenue Collected
+                $todayRevenue = Payment::where('gym_id', $gymId)
+                    ->whereDate('payment_date', $today)
+                    ->sum('paid_amount');
 
-            // Retention Alert (Expiring in 7 days)
-            $expiringCount = 0;
-            $gymMembers = Member::where('gym_id', $gymId)->where('status', 'active')->with('plan')->get();
-            foreach ($gymMembers as $m) {
-                if ($m->plan && $m->joining_date) {
-                    $endDate = Carbon::parse($m->joining_date)->addMonths($m->plan->duration_months);
-                    if ($endDate->diffInDays($today) <= 7 && $endDate->isFuture()) {
-                        $expiringCount++;
+                if ($todayRevenue > 0) {
+                    $title = "💰 Daily Revenue: {$gymName}";
+                    $body = "You collected ₹" . number_format($todayRevenue) . " today. Keep up the great momentum!";
+
+                    $this->saveInAppNotification($owner->id, $title, $body, ['type' => 'owner_daily_revenue']);
+                    $this->line("  ✓ Owner Revenue Summary for {$owner->name}: ₹" . number_format($todayRevenue));
+
+                    if ($token) {
+                        $notificationsToSend[] = [
+                            'to' => $token,
+                            'title' => $title,
+                            'body' => $body,
+                            'sound' => 'default',
+                            'data' => ['type' => 'owner_daily_revenue'],
+                        ];
                     }
                 }
-            }
+
+                // Renewals due in the next 7 days
+                $expiringCount = 0;
+                $gymMembers = Member::where('gym_id', $gymId)->where('status', 'active')->with('plan')->get();
+                foreach ($gymMembers as $m) {
+                    if ($m->plan && $m->joining_date) {
+                        $endDate = Carbon::parse($m->joining_date)->addMonths($m->plan->duration_months);
+                        if ($endDate->diffInDays($today) <= 7 && $endDate->isFuture()) {
+                            $expiringCount++;
+                        }
+                    }
+                }
+
                 if ($expiringCount > 0) {
-                    $notificationsToSend[] = [
-                        'to' => $owner->push_token,
-                        'title' => '⚠️ Renewals Due: ' . $gymName,
-                        'body' => $expiringCount . ' members have their plans expiring in the next 7 days. Time to follow up!',
-                        'sound' => 'default',
-                    ];
+                    $title = "⚠️ Renewals Due: {$gymName}";
+                    $body = "{$expiringCount} members have plans expiring in the next 7 days. Time to follow up!";
+
+                    $this->saveInAppNotification($owner->id, $title, $body, ['type' => 'owner_expiring_plans']);
+                    $this->line("  ✓ Owner Renewals Alert for {$owner->name}: {$expiringCount} expiring plans");
+
+                    if ($token) {
+                        $notificationsToSend[] = [
+                            'to' => $token,
+                            'title' => $title,
+                            'body' => $body,
+                            'sound' => 'default',
+                            'data' => ['type' => 'owner_expiring_plans'],
+                        ];
+                    }
                 }
             }
         }
 
-        // Send via Expo Push API
-        if (count($notificationsToSend) > 0) {
-            $this->info('Sending ' . count($notificationsToSend) . ' push notifications via Expo...');
+        // ================= SEND PUSH NOTIFICATIONS VIA EXPO API =================
+        $this->sendPushNotifications($notificationsToSend);
+
+        $this->info("==================================================");
+        $this->info("✅ Push Reminders job finished successfully.");
+        $this->info("==================================================");
+    }
+
+    /**
+     * Dispatch array of push notification payloads via Expo Push API.
+     */
+    protected function sendPushNotifications(array $notifications)
+    {
+        if (count($notifications) > 0) {
+            $this->info("📤 Sending " . count($notifications) . " push notification(s) via Expo Push API...");
             
-            // Expo accepts array of messages
-            $response = Http::post('https://exp.host/--/api/v2/push/send', $notificationsToSend);
-            
-            if ($response->successful()) {
-                $this->info('Successfully sent push notifications!');
-                Log::info('Expo Push Success: ' . $response->body());
-            } else {
-                $this->error('Failed to send push notifications.');
-                Log::error('Expo Push Failed: ' . $response->body());
+            $chunks = array_chunk($notifications, 100);
+            foreach ($chunks as $chunk) {
+                try {
+                    $response = Http::timeout(15)->post('https://exp.host/--/api/v2/push/send', $chunk);
+                    
+                    if ($response->successful()) {
+                        $this->info("  ✓ Successfully dispatched push notifications to Expo!");
+                        Log::info('Expo Push Batch Sent: ' . count($chunk) . ' notifications.');
+                    } else {
+                        $this->error("  ✗ Failed to dispatch to Expo: " . $response->body());
+                        Log::error('Expo Push API Error: ' . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    $this->error("  ✗ Expo Push Exception: " . $e->getMessage());
+                    Log::error('Expo Push Exception: ' . $e->getMessage());
+                }
             }
         } else {
-            $this->info('No push notifications to send today.');
+            $this->comment("ℹ️ No mobile push_tokens found in DB for today's candidates. In-app notifications were saved.");
+        }
+    }
+
+    /**
+     * Helper to save notification in the database for the user.
+     */
+    protected function saveInAppNotification(int $userId, string $title, string $body, array $data = [])
+    {
+        try {
+            // Prevent duplicate records for same user & title on the same day
+            $alreadyExists = FcmNotification::where('user_id', $userId)
+                ->where('title', $title)
+                ->whereDate('created_at', today())
+                ->exists();
+
+            if (!$alreadyExists) {
+                FcmNotification::create([
+                    'user_id' => $userId,
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => $data,
+                    'is_read' => false,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning("Could not save in-app notification for user {$userId}: " . $e->getMessage());
         }
     }
 }

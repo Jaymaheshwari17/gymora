@@ -35,6 +35,7 @@ class User extends Authenticatable
         'experience_years',
         'status',
         'fcm_device_token',
+        'push_token',
     ];
 
     /**

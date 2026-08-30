@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gym Settings Routes
     Route::get('/settings/gym', [\App\Http\Controllers\Api\SettingsController::class, 'getGymProfile']);
     Route::post('/settings/gym', [\App\Http\Controllers\Api\SettingsController::class, 'updateGymProfile']);
+    Route::post('/settings/push-token', [\App\Http\Controllers\Api\SettingsController::class, 'updatePushToken']);
     
     // Attendance Routes
     Route::post('/attendance/mark', [\App\Http\Controllers\Api\AttendanceController::class, 'mark']);

@@ -16,14 +16,17 @@ class AttendanceController extends Controller
      */
     public function getMembersAttendance(Request $request)
     {
-        $gymId = Auth::user()->gym_id;
+        $user = Auth::user();
+        $gymId = $user->gym_id;
         $date = $request->get('date', Carbon::today()->format('Y-m-d'));
 
-        // Get all active members
-        $members = Member::with(['user', 'plan'])
+        // Get all active members for this gym
+        $membersQuery = Member::with(['user', 'plan'])
             ->where('gym_id', $gymId)
-            ->where('status', 'active')
-            ->get();
+            ->where('status', 'active');
+
+        // If logged-in user is a trainer, show all gym members or their assigned members
+        $members = $membersQuery->get();
 
         // Get attendance records for this date
         $attendances = Attendance::where('gym_id', $gymId)
@@ -33,8 +36,10 @@ class AttendanceController extends Controller
 
         $result = $members->map(function ($member) use ($attendances) {
             $attendance = $attendances->get($member->id);
-            $photo = $member->user->photo;
-            $photoUrl = $photo ? url($photo) : 'https://ui-avatars.com/api/?name=' . urlencode($member->user->name ?? 'U') . '&background=f3f4f6&color=374151';
+            $isPresent = $attendance && $attendance->status === 'P';
+
+            $photo = $member->user ? $member->user->photo : null;
+            $photoUrl = $photo ? url($photo) : ('https://ui-avatars.com/api/?name=' . urlencode($member->user->name ?? 'U') . '&background=f3f4f6&color=374151');
 
             return [
                 'id' => $member->id,
@@ -42,6 +47,8 @@ class AttendanceController extends Controller
                 'plan' => $member->plan->plan_group_name ?? 'No Plan',
                 'photo_url' => $photoUrl,
                 'status' => $attendance ? $attendance->status : null,
+                'is_present' => $isPresent,
+                'check_in_time' => $attendance && $attendance->check_in_time ? date('g:i A', strtotime($attendance->check_in_time)) : ($isPresent ? ($attendance->created_at ? $attendance->created_at->format('g:i A') : '10:00 AM') : null),
             ];
         });
 
@@ -51,41 +58,55 @@ class AttendanceController extends Controller
         ]);
     }
 
+    /**
+     * Mark or toggle attendance for a member
+     */
     public function toggleAttendance(Request $request)
     {
         $request->validate([
             'member_id' => 'required|exists:members,id',
             'date' => 'required|date',
-            'status' => 'required|in:P,A'
+            'status' => 'nullable|in:P,A',
+            'is_present' => 'nullable'
         ]);
 
-        $gymId = Auth::user()->gym_id;
+        $user = Auth::user();
+        $gymId = $user->gym_id;
         $memberId = $request->member_id;
         $date = $request->date;
-        $status = $request->status;
 
-        $attendance = Attendance::where('member_id', $memberId)
-            ->whereDate('date', $date)
-            ->first();
-
-        if (!$attendance) {
-            Attendance::create([
-                'member_id' => $memberId,
-                'gym_id' => $gymId,
-                'date' => $date,
-                'status' => $status,
-                'marked_by' => Auth::id()
-            ]);
+        // Determine status (P or A) from status or is_present
+        if ($request->has('status') && in_array($request->status, ['P', 'A'])) {
+            $status = $request->status;
+        } elseif ($request->has('is_present')) {
+            $status = filter_var($request->is_present, FILTER_VALIDATE_BOOLEAN) ? 'P' : 'A';
         } else {
-            $attendance->update([
-                'status' => $status,
-                'marked_by' => Auth::id()
-            ]);
+            $status = 'P';
         }
+
+        $checkInTime = ($status === 'P') ? now()->format('H:i:s') : null;
+
+        $attendance = Attendance::updateOrCreate(
+            [
+                'member_id' => $memberId,
+                'date' => $date,
+            ],
+            [
+                'gym_id' => $gymId,
+                'status' => $status,
+                'marked_by' => $user->id,
+                'check_in_time' => $checkInTime,
+            ]
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Attendance marked successfully'
+            'message' => 'Attendance marked successfully',
+            'data' => [
+                'status' => $status,
+                'is_present' => ($status === 'P'),
+                'check_in_time' => $checkInTime ? date('g:i A', strtotime($checkInTime)) : null,
+            ]
         ]);
     }
 }

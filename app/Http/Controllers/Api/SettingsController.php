@@ -179,4 +179,32 @@ class SettingsController extends Controller
             return $this->errorResponse('Failed to update gym profile', [], 500);
         }
     }
+
+    /**
+     * Update device push token for push notifications.
+     */
+    public function updatePushToken(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'push_token' => 'required|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation Error', $validator->errors(), 422);
+            }
+
+            $user = $request->user();
+            $user->push_token = $request->input('push_token');
+            $user->save();
+
+            return $this->successResponse('Push token updated successfully', [
+                'push_token' => $user->push_token
+            ]);
+        } catch (Exception $e) {
+            Log::error('SettingsController@updatePushToken: ' . $e->getMessage());
+            return $this->errorResponse('Failed to update push token', [], 500);
+        }
+    }
 }
+
