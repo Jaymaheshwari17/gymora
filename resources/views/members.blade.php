@@ -9,8 +9,28 @@
             <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Gym Members</h1>
             <p class="text-sm text-gray-500 mt-1 font-medium">Manage all your members and their subscriptions.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="openWizardModal()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Filter 1: Membership Status -->
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <i class="fa-solid fa-circle-dot text-indigo-500 text-xs"></i>
+                <select id="member-status-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <!-- Filter 2: Plan / Package -->
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <i class="fa-solid fa-dumbbell text-indigo-500 text-xs"></i>
+                <select id="member-plan-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[160px] truncate">
+                    <option value="all">All Plans</option>
+                    <!-- Populated dynamically via JS -->
+                </select>
+            </div>
+
+            <button onclick="openWizardModal()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer">
                 <i class="fa-solid fa-user-plus"></i> Add New Member
             </button>
         </div>
@@ -570,12 +590,23 @@
             });
             plansData = flatPlans;
             
-            // Populate select
+            // Populate modal plan select
             const select = document.getElementById('plan_id');
             select.innerHTML = '<option value="">Select a plan...</option>';
             plansData.forEach(p => {
                 select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} (₹${p.amount})</option>`;
             });
+
+            // Populate top header filter select
+            const filterSelect = document.getElementById('member-plan-filter');
+            if (filterSelect) {
+                const currentVal = filterSelect.value || 'all';
+                filterSelect.innerHTML = '<option value="all">All Plans</option>';
+                plansData.forEach(p => {
+                    filterSelect.innerHTML += `<option value="${p.id}">${p.display_name}</option>`;
+                });
+                filterSelect.value = currentVal;
+            }
         }
     }
 
@@ -622,10 +653,19 @@
             dataTable.destroy();
         }
 
+        const statusFilter = document.getElementById('member-status-filter')?.value || 'all';
+        const planFilter = document.getElementById('member-plan-filter')?.value || 'all';
+
+        const filteredMembers = membersData.filter(member => {
+            if (statusFilter !== 'all' && member.status !== statusFilter) return false;
+            if (planFilter !== 'all' && String(member.plan_id) !== String(planFilter)) return false;
+            return true;
+        });
+
         const tbody = document.getElementById('members-tbody');
         let html = '';
         
-        membersData.forEach((member, index) => {
+        filteredMembers.forEach((member, index) => {
             const user = member.user || {};
             const plan = member.plan || {};
             const batch = member.batch || null;

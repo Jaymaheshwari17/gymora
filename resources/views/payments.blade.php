@@ -13,16 +13,33 @@
                 <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Invoices</h1>
                 <p class="text-xs lg:text-sm text-gray-500 mt-1 font-medium">Manage member fees, download GST invoices, and track dues.</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="search-payment" placeholder="Search member name or mobile..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-64 bg-white shadow-2xs font-medium">
+                    <input type="text" id="search-payment" placeholder="Search member or mobile..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-52 sm:w-60 bg-white shadow-2xs font-medium">
                 </div>
-                <select id="status-filter" onchange="fetchPayments()" class="px-3.5 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none bg-white font-semibold shadow-2xs cursor-pointer">
-                    <option value="all">All Payments</option>
-                    <option value="pending">Pending Dues</option>
-                    <option value="paid">Fully Paid</option>
-                </select>
+
+                <!-- Filter 1: Status Filter -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                    <i class="fa-solid fa-filter text-[#5d5fef] text-xs"></i>
+                    <select id="status-filter" onchange="fetchPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                        <option value="all">All Payments</option>
+                        <option value="pending">Pending Dues</option>
+                        <option value="paid">Fully Paid</option>
+                    </select>
+                </div>
+
+                <!-- Filter 2: Date Period Filter -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                    <i class="fa-solid fa-calendar-days text-[#5d5fef] text-xs"></i>
+                    <select id="date-filter" onchange="renderPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="this_week">This Week</option>
+                        <option value="this_month">This Month</option>
+                        <option value="last_month">Last Month</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -396,12 +413,42 @@ async function fetchPayments() {
 function renderPayments() {
     const tbody = document.getElementById('payments-tbody');
     const search = document.getElementById('search-payment').value.toLowerCase();
+    const dateFilter = document.getElementById('date-filter')?.value || 'all';
     
     let filtered = paymentsData.filter(p => {
         const name = p.member?.user?.name || '';
         const mobile = p.member?.user?.mobile || '';
         const plan = p.member?.plan?.plan_group_name || '';
-        return name.toLowerCase().includes(search) || mobile.includes(search) || plan.toLowerCase().includes(search);
+        const matchesSearch = name.toLowerCase().includes(search) || mobile.includes(search) || plan.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+
+        // Date Filter Evaluation
+        if (dateFilter !== 'all') {
+            const rawDate = p.payment_date || p.created_at;
+            if (!rawDate) return false;
+            const pDate = new Date(rawDate);
+            const now = new Date();
+
+            if (dateFilter === 'today') {
+                const isToday = pDate.getDate() === now.getDate() &&
+                                pDate.getMonth() === now.getMonth() &&
+                                pDate.getFullYear() === now.getFullYear();
+                if (!isToday) return false;
+            } else if (dateFilter === 'this_week') {
+                const oneWeekAgo = new Date(now);
+                oneWeekAgo.setDate(now.getDate() - 7);
+                oneWeekAgo.setHours(0, 0, 0, 0);
+                if (pDate < oneWeekAgo) return false;
+            } else if (dateFilter === 'this_month') {
+                if (pDate.getMonth() !== now.getMonth() || pDate.getFullYear() !== now.getFullYear()) return false;
+            } else if (dateFilter === 'last_month') {
+                const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+                const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+                if (pDate.getMonth() !== prevMonth || pDate.getFullYear() !== prevYear) return false;
+            }
+        }
+
+        return true;
     });
 
     let totalPaid = 0;
