@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@theme {
+    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    
+    /* Custom Neon Colors for Gymora Theme */
+    --color-gym-dark: #0f111a;
+    --color-gym-card: #1a1d2d;
+    --color-gym-pink: #d9229b;
+    --color-gym-purple: #8122db;
+}
