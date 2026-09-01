@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\PaymentTransaction;
 use App\Models\Plan;
 use App\Models\User;
 use Exception;
@@ -83,15 +84,28 @@ class MemberService
             ]);
 
             // Create Payment record
-            Payment::create([
+            $payment = Payment::create([
                 'member_id' => $member->id,
                 'gym_id' => $gymId,
                 'total_amount' => $totalAmount,
                 'paid_amount' => $paidAmount,
                 'due_amount' => $dueAmount,
-                'payment_date' => $paidAmount > 0 ? now()->toDateString() : null,
+                'payment_date' => $paidAmount > 0 ? ($data['joining_date'] ?? now()->toDateString()) : null,
                 'status' => $paymentStatus,
             ]);
+
+            // If initial amount is paid, record transaction history
+            if ($paidAmount > 0) {
+                PaymentTransaction::create([
+                    'payment_id' => $payment->id,
+                    'member_id' => $member->id,
+                    'gym_id' => $gymId,
+                    'amount' => $paidAmount,
+                    'payment_date' => $data['joining_date'] ?? now()->toDateString(),
+                    'payment_mode' => $data['payment_mode'] ?? 'cash',
+                    'notes' => 'Initial plan payment',
+                ]);
+            }
 
             DB::commit();
             return $member->load(['user', 'plan', 'trainer', 'payments']);
@@ -265,15 +279,27 @@ class MemberService
                     'status' => 'active',
                 ]);
 
-                Payment::create([
+                $newPayment = Payment::create([
                     'member_id' => $member->id,
                     'gym_id' => $gymId,
                     'total_amount' => $totalAmount,
                     'paid_amount' => $paidAmount,
                     'due_amount' => $dueAmount,
-                    'payment_date' => $paidAmount > 0 ? now()->toDateString() : null,
+                    'payment_date' => $paidAmount > 0 ? ($data['start_date'] ?? now()->toDateString()) : null,
                     'status' => $paymentStatus,
                 ]);
+
+                if ($paidAmount > 0) {
+                    PaymentTransaction::create([
+                        'payment_id' => $newPayment->id,
+                        'member_id' => $member->id,
+                        'gym_id' => $gymId,
+                        'amount' => $paidAmount,
+                        'payment_date' => $data['start_date'] ?? now()->toDateString(),
+                        'payment_mode' => $data['payment_mode'] ?? 'cash',
+                        'notes' => 'Renewal payment',
+                    ]);
+                }
             }
 
             DB::commit();

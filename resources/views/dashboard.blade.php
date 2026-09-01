@@ -4,27 +4,51 @@
 <!-- Dashboard Main Content Container -->
 <div class="flex-1 overflow-y-auto px-8 py-7 bg-[#f8f9fc]">
     
-    <!-- Welcome Header & Action Button -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
+    <!-- Welcome Header & Action Button / Date Range Filter -->
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-7">
         <div>
             <h1 class="text-2xl lg:text-[26px] font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
                 Welcome back, <span id="welcome-name">Mayur</span>! <span>👋</span>
             </h1>
             <p class="text-gray-400 text-xs font-medium mt-1">Here's what's happening with your gym today.</p>
         </div>
-        <div class="relative inline-block text-left">
-            <button id="btn-add-new" onclick="toggleAddNewMenu(event)" class="bg-[#5d5fef] hover:bg-[#4d4fe0] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-[#5d5fef]/25 cursor-pointer">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Add New</span>
-                <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
-            </button>
-            <!-- Dropdown Menu -->
-            <div id="dropdown-add-new" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 origin-top-right">
-                <a href="/members" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-user-plus text-gray-400 w-4"></i> Add Member</a>
-                <a href="/payments" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-wallet text-gray-400 w-4"></i> Collect Payment</a>
-                <a href="/attendance" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-regular fa-calendar-check text-gray-400 w-4"></i> Mark Attendance</a>
-                <a href="/expenses" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-receipt text-gray-400 w-4"></i> Add Expense</a>
-                <a href="/plans" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-clipboard-list text-gray-400 w-4"></i> Create Plan</a>
+        
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- 🌟 Date Range Filter Control -->
+            <div class="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl border border-gray-200 shadow-2xs">
+                <i class="fa-solid fa-calendar-week text-[#5d5fef] text-xs"></i>
+                <select id="dash-date-period" onchange="handleDashboardDateChange()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                    <option value="this_month" selected>📅 This Month (Sep 2026)</option>
+                    <option value="today">☀️ Today</option>
+                    <option value="this_week">📆 This Week</option>
+                    <option value="last_month">🗓️ Last Month (Aug 2026)</option>
+                    <option value="all_time">🌐 All Time (Total)</option>
+                    <option value="custom">✏️ Custom Date Range...</option>
+                </select>
+            </div>
+
+            <!-- Custom From / To Date inputs (Visible only when 'custom' is selected) -->
+            <div id="dash-custom-date-container" class="hidden flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs text-xs">
+                <input type="date" id="dash-from-date" class="outline-none text-xs font-bold text-gray-700">
+                <span class="text-gray-400 font-bold">to</span>
+                <input type="date" id="dash-to-date" class="outline-none text-xs font-bold text-gray-700">
+                <button onclick="fetchDashboardStats()" class="px-2.5 py-1 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white rounded-lg font-bold text-[11px] transition cursor-pointer">Apply</button>
+            </div>
+
+            <!-- Add New Dropdown -->
+            <div class="relative inline-block text-left">
+                <button id="btn-add-new" onclick="toggleAddNewMenu(event)" class="bg-[#5d5fef] hover:bg-[#4d4fe0] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-[#5d5fef]/25 cursor-pointer">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add New</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] ml-1"></i>
+                </button>
+                <div id="dropdown-add-new" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 origin-top-right">
+                    <a href="/members" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-user-plus text-gray-400 w-4"></i> Add Member</a>
+                    <a href="/payments" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-wallet text-gray-400 w-4"></i> Collect Payment</a>
+                    <a href="/attendance" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-regular fa-calendar-check text-gray-400 w-4"></i> Mark Attendance</a>
+                    <a href="/expenses" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-receipt text-gray-400 w-4"></i> Add Expense</a>
+                    <a href="/plans" class="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#5d5fef] transition-colors"><i class="fa-solid fa-clipboard-list text-gray-400 w-4"></i> Create Plan</a>
+                </div>
             </div>
         </div>
     </div>
@@ -65,20 +89,45 @@
             </div>
         </div>
 
-        <!-- Due This Month -->
-        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-[130px]">
+        <!-- Due This Month (With Hover Tooltip) -->
+        <div class="relative group bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-[130px]">
             <div class="flex items-start gap-3.5">
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-base shrink-0">
                     <i class="fa-solid fa-indian-rupee-sign"></i>
                 </div>
-                <div>
-                    <h3 class="text-xs font-bold text-gray-900 leading-tight">Due This Month</h3>
-                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1">Members with pending fees</p>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-gray-900 leading-tight">Due This Month</h3>
+                        <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded cursor-help">
+                            <i class="fa-solid fa-info text-[9px] mr-0.5"></i> Details
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1 truncate">Members with pending fees</p>
                 </div>
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-amber-500" id="stat-due-month">0</span>
                 <a href="/payments?filter=due" class="bg-amber-50 hover:bg-amber-100 text-amber-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
+            </div>
+
+            <!-- 🌟 Hover Tooltip / Dropdown Popup -->
+            <div class="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 transform scale-95 group-hover:scale-100 absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-amber-100/90 p-4 z-50 pointer-events-auto">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs font-bold">
+                            <i class="fa-solid fa-wallet"></i>
+                        </span>
+                        <span class="text-xs font-extrabold text-gray-900">Due Members</span>
+                    </div>
+                    <span id="tooltip-due-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100">0 Due</span>
+                </div>
+                <div id="tooltip-due-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 text-xs divide-y divide-gray-50">
+                    <div class="py-2 text-center text-gray-400 text-[11px]">No pending fees due!</div>
+                </div>
+                <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                    <span class="text-gray-400 font-medium">Collect dues easily</span>
+                    <a href="/payments?filter=due" class="text-amber-600 font-bold hover:underline flex items-center gap-1">Go to Invoices &rarr;</a>
+                </div>
             </div>
         </div>
 
@@ -160,14 +209,19 @@
             </div>
         </div>
 
-        <!-- Pending Fees -->
-        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <!-- Pending Fees (With Hover Tooltip) -->
+        <div class="relative group bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
-                <div class="flex items-center gap-2.5 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-wallet"></i>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-800">Pending Fees</span>
                     </div>
-                    <span class="text-xs font-bold text-gray-800">Pending Fees</span>
+                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded cursor-help">
+                        <i class="fa-solid fa-info text-[9px] mr-0.5"></i> View
+                    </span>
                 </div>
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1">₹<span id="stat-pending">0</span></div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5">Total pending amount</div>
@@ -187,6 +241,26 @@
                     </svg>
                 </div>
             </div>
+
+            <!-- 🌟 Hover Tooltip / Dropdown Popup -->
+            <div class="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 transform scale-95 group-hover:scale-100 absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-100/90 p-4 z-50 pointer-events-auto">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </span>
+                        <span class="text-xs font-extrabold text-gray-900">Pending Amount Breakdown</span>
+                    </div>
+                    <span id="tooltip-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100">0 Due</span>
+                </div>
+                <div id="tooltip-pending-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 text-xs divide-y divide-gray-50">
+                    <div class="py-2 text-center text-gray-400 text-[11px]">All dues cleared!</div>
+                </div>
+                <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                    <span class="text-gray-400 font-medium">Direct billing actions</span>
+                    <a href="/payments?filter=due" class="text-emerald-600 font-bold hover:underline flex items-center gap-1">Open Billing &rarr;</a>
+                </div>
+            </div>
         </div>
 
         <!-- Collected Fees -->
@@ -199,7 +273,7 @@
                     <span class="text-xs font-bold text-gray-800">Collected Fees</span>
                 </div>
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1">₹<span id="stat-collected">0</span></div>
-                <div class="text-[11px] text-gray-400 font-medium mt-0.5">This month collection</div>
+                <div class="text-[11px] text-gray-400 font-medium mt-0.5" id="stat-collected-subtitle">This month collection</div>
             </div>
             <!-- Dynamic Sparkline -->
             <div class="mt-4">
@@ -450,10 +524,34 @@
     let monthlyBarChart = null;
     let rawMonthlyData = null;
 
-    // Fetch Stats API
+    function handleDashboardDateChange() {
+        const period = document.getElementById('dash-date-period').value;
+        const customCont = document.getElementById('dash-custom-date-container');
+        if (period === 'custom') {
+            customCont.classList.remove('hidden');
+            const today = new Date().toISOString().split('T')[0];
+            if (!document.getElementById('dash-from-date').value) document.getElementById('dash-from-date').value = today;
+            if (!document.getElementById('dash-to-date').value) document.getElementById('dash-to-date').value = today;
+        } else {
+            customCont.classList.add('hidden');
+            fetchDashboardStats();
+        }
+    }
+
+    // Fetch Stats API with Dynamic Period & Date Range Filter
     async function fetchDashboardStats() {
         try {
-            const response = await fetch('/api/dashboard/owner-stats', {
+            const periodSelect = document.getElementById('dash-date-period');
+            const period = periodSelect ? periodSelect.value : 'this_month';
+            const fromDate = document.getElementById('dash-from-date')?.value || '';
+            const toDate = document.getElementById('dash-to-date')?.value || '';
+
+            let url = `/api/dashboard/owner-stats?period=${period}`;
+            if (period === 'custom' && fromDate && toDate) {
+                url += `&start_date=${fromDate}&end_date=${toDate}`;
+            }
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -470,6 +568,11 @@
             if (response.ok && result.success) {
                 const data = result.data || {};
                 
+                // Update subtitle for period
+                const periodLabel = data.period_label || 'This month';
+                const subEl = document.getElementById('stat-collected-subtitle');
+                if (subEl) subEl.textContent = `${periodLabel} collection`;
+
                 // 1. Top Metrics (100% Dynamic)
                 const top = data.top_stats || {};
                 animateValue("stat-members", 0, top.total_members || 0, 800);
@@ -514,6 +617,9 @@
 
                 // 7. Fee Due & Expiry Reminders (100% Dynamic with 1-Click WhatsApp)
                 renderDueReminders(data.due_and_expiring || []);
+
+                // 8. Dynamic Card Hover Tooltips
+                renderDueTooltips(data.due_and_expiring || []);
 
             }
         } catch (error) {
@@ -813,6 +919,51 @@
         });
 
         container.innerHTML = html;
+    }
+
+    // 🌟 Render Card Hover Tooltips with Member Names & Due Amounts
+    function renderDueTooltips(list) {
+        const dueListCont = document.getElementById('tooltip-due-list');
+        const dueBadge = document.getElementById('tooltip-due-badge');
+        const pendingListCont = document.getElementById('tooltip-pending-list');
+        const pendingBadge = document.getElementById('tooltip-pending-badge');
+
+        if (!list || list.length === 0) {
+            const emptyHtml = `<div class="py-3 text-center text-gray-400 text-xs font-medium"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> No pending dues!</div>`;
+            if (dueListCont) dueListCont.innerHTML = emptyHtml;
+            if (pendingListCont) pendingListCont.innerHTML = emptyHtml;
+            if (dueBadge) dueBadge.textContent = '0 Due';
+            if (pendingBadge) pendingBadge.textContent = '0 Due';
+            return;
+        }
+
+        if (dueBadge) dueBadge.textContent = `${list.length} Members`;
+        if (pendingBadge) pendingBadge.textContent = `${list.length} Members`;
+
+        let html = '';
+        list.forEach(item => {
+            const dueFormatted = parseFloat(item.due_amount).toLocaleString('en-IN');
+            html += `
+                <div class="flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div class="flex items-center gap-2 min-w-0 pr-2">
+                        <div class="w-7 h-7 rounded-lg bg-[#5d5fef]/10 text-[#5d5fef] font-black text-[11px] flex items-center justify-center shrink-0 uppercase">
+                            ${(item.member_name || 'M').charAt(0)}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-bold text-gray-900 text-xs truncate">${item.member_name}</div>
+                            <div class="text-[10px] text-gray-400 truncate">${item.plan_name || 'Plan'}</div>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="font-black text-rose-500 text-xs block">₹${dueFormatted}</span>
+                        <a href="/payments?member_id=${item.member_id || ''}" class="text-[10px] font-bold text-[#5d5fef] hover:underline">Pay &rarr;</a>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (dueListCont) dueListCont.innerHTML = html;
+        if (pendingListCont) pendingListCont.innerHTML = html;
     }
 
     // Number counter animation

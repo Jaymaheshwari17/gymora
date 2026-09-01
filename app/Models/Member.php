@@ -19,5 +19,6 @@ class Member extends Model
     public function trainer(): BelongsTo { return $this->belongsTo(User::class, 'trainer_id'); }
     public function plan(): BelongsTo { return $this->belongsTo(Plan::class); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function paymentTransactions(): HasMany { return $this->hasMany(PaymentTransaction::class)->orderBy('payment_date', 'asc'); }
     public function attendance(): HasMany { return $this->hasMany(Attendance::class); }
 }

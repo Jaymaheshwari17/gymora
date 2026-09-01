@@ -11,25 +11,35 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Invoices</h1>
-                <p class="text-xs lg:text-sm text-gray-500 mt-1 font-medium">Manage member fees, download GST invoices, and track dues.</p>
+                <p class="text-xs lg:text-sm text-gray-500 mt-1 font-medium">Manage member fees, track due payments, installments, and GST invoices.</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                <!-- Search Input -->
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="search-payment" placeholder="Search member or mobile..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-52 sm:w-60 bg-white shadow-2xs font-medium">
+                    <input type="text" id="search-payment" placeholder="Search member, phone or invoice..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-48 sm:w-56 bg-white shadow-2xs font-medium">
                 </div>
 
-                <!-- Filter 1: Status Filter -->
+                <!-- 🌟 Filter: Member Filter (Searchable / Select) -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                    <i class="fa-solid fa-user text-[#5d5fef] text-xs"></i>
+                    <select id="member-filter" onchange="renderPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[160px] truncate">
+                        <option value="all">All Members</option>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Filter: Status Filter -->
                 <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                     <i class="fa-solid fa-filter text-[#5d5fef] text-xs"></i>
                     <select id="status-filter" onchange="fetchPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
-                        <option value="all">All Payments</option>
+                        <option value="all">All Status</option>
                         <option value="pending">Pending Dues</option>
                         <option value="paid">Fully Paid</option>
                     </select>
                 </div>
 
-                <!-- Filter 2: Date Period Filter -->
+                <!-- Filter: Date Period Filter -->
                 <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                     <i class="fa-solid fa-calendar-days text-[#5d5fef] text-xs"></i>
                     <select id="date-filter" onchange="renderPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
@@ -116,7 +126,7 @@
 <div id="invoice-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] hidden flex items-center justify-center p-3 sm:p-5 overflow-hidden">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[94vh] overflow-hidden transform transition-all scale-95 opacity-0 border border-gray-200" id="invoice-modal-content">
         
-        <!-- Modal Top Action Header (Sticky, always on top, not printed) -->
+        <!-- Modal Top Action Header -->
         <div class="px-5 py-3.5 bg-gray-900 text-white flex items-center justify-between no-print shrink-0 border-b border-gray-800 shadow-md">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-[#5d5fef] flex items-center justify-center text-white text-sm">
@@ -154,14 +164,11 @@
             </div>
         </div>
 
-        <!-- ========================================== -->
-        <!-- 📄 PRINTABLE & PDF EXPORTABLE INVOICE CARD -->
-        <!-- ========================================== -->
+        <!-- PRINTABLE & PDF EXPORTABLE INVOICE CARD -->
         <div id="invoice-printable-area" class="p-8 sm:p-10 bg-white text-gray-900 font-sans overflow-y-auto flex-1">
             
             <!-- 1. Top Section: Big Title (Left) + Gym Info (Right) -->
             <div class="flex justify-between items-start mb-8">
-                <!-- Left: Big Invoice Title & Gym Branding -->
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-[#4f46e5] text-white flex items-center justify-center font-bold text-xl shrink-0 shadow-sm">
                         <img id="inv-gym-logo" src="" class="w-full h-full object-cover rounded-xl" style="display: none;">
@@ -173,7 +180,6 @@
                     </div>
                 </div>
 
-                <!-- Right: Gym Details -->
                 <div class="text-right text-xs text-gray-600 leading-relaxed font-medium">
                     <div class="font-bold text-gray-900 uppercase text-xs tracking-wider" id="inv-gym-company-name">GYMORA FITNESS CLUB</div>
                     <div id="inv-gym-address">123 Fitness Boulevard, Sector 14</div>
@@ -185,15 +191,13 @@
 
             <!-- 2. Metadata Section: Billed To (Left) & Invoice Meta (Right) -->
             <div class="grid grid-cols-2 gap-6 my-6 text-xs">
-                <!-- Left: Billed To -->
                 <div>
                     <span class="text-indigo-600 font-bold uppercase tracking-wider text-[11px] block mb-1.5">Billed To</span>
-                    <div class="text-base font-extrabold text-gray-900" id="inv-member-name">Aman Pal</div>
+                    <div class="text-base font-extrabold text-gray-900" id="inv-member-name">Member Name</div>
                     <div class="text-gray-600 font-medium mt-0.5" id="inv-member-mobile">+91 98765 43210</div>
                     <div class="text-gray-400 font-medium text-[11px] mt-0.5">Member ID: <span id="inv-member-id">#GYM-101</span></div>
                 </div>
 
-                <!-- Right: Date, Invoice #, Amount Due -->
                 <div class="grid grid-cols-3 gap-2 text-right">
                     <div>
                         <span class="text-indigo-600 font-bold uppercase tracking-wider text-[10px] block mb-1">Date Issued</span>
@@ -210,11 +214,10 @@
                 </div>
             </div>
 
-            <!-- Blue Accent Divider Line -->
             <div class="w-full h-[2.5px] bg-[#4f46e5] my-5"></div>
 
             <!-- 3. Clean Table -->
-            <div class="mb-8">
+            <div class="mb-6">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
@@ -227,20 +230,27 @@
                     <tbody class="divide-y divide-gray-100 text-xs">
                         <tr>
                             <td class="py-4 pr-4">
-                                <div class="font-bold text-gray-900 text-sm" id="inv-table-plan-name">12 Months Cardio and Weight Training</div>
+                                <div class="font-bold text-gray-900 text-sm" id="inv-table-plan-name">Cardio & Gym Training</div>
                                 <div class="text-gray-400 text-[11px] font-medium mt-0.5" id="inv-batch-timing">Full gym access & trainer guidance</div>
                             </td>
-                            <td class="py-4 text-right font-medium text-gray-700">₹<span id="inv-table-rate">4,500</span></td>
-                            <td class="py-4 text-center font-semibold text-gray-600" id="inv-table-duration">12 Months</td>
-                            <td class="py-4 text-right font-bold text-gray-900">₹<span id="inv-table-total">4,500</span></td>
+                            <td class="py-4 text-right font-medium text-gray-700">₹<span id="inv-table-rate">0</span></td>
+                            <td class="py-4 text-center font-semibold text-gray-600" id="inv-table-duration">1 Mo</td>
+                            <td class="py-4 text-right font-bold text-gray-900">₹<span id="inv-table-total">0</span></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
+            <!-- Payment Transactions Timeline in Invoice Preview (if any) -->
+            <div id="inv-installments-section" class="mb-6 bg-gray-50 rounded-xl p-3.5 border border-gray-100" style="display: none;">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-500 block mb-2">Recorded Payment Installments</span>
+                <div id="inv-installments-list" class="space-y-1.5 text-[11px]">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
             <!-- 4. Bottom Totals & Notes -->
-            <div class="flex flex-col sm:flex-row justify-between items-start gap-8 pt-4">
-                <!-- Left: Notes & Terms -->
+            <div class="flex flex-col sm:flex-row justify-between items-start gap-8 pt-2">
                 <div class="space-y-4 max-w-sm text-xs">
                     <div>
                         <span class="text-indigo-600 font-bold uppercase tracking-wider text-[11px] block mb-1">Notes</span>
@@ -256,26 +266,20 @@
                     </div>
                 </div>
 
-                <!-- Right: Clean Totals Breakdown -->
                 <div class="w-full sm:w-64 space-y-2 text-xs font-semibold">
                     <div class="flex justify-between text-gray-600">
                         <span>Subtotal:</span>
-                        <span class="font-bold text-gray-900">₹<span id="inv-calc-subtotal">4,500</span></span>
-                    </div>
-                    <div class="flex justify-between text-gray-600">
-                        <span>Discount:</span>
-                        <span>-₹0.00</span>
+                        <span class="font-bold text-gray-900">₹<span id="inv-calc-subtotal">0</span></span>
                     </div>
                     <div class="border-t border-gray-200 pt-2 flex justify-between text-sm font-bold text-gray-900">
                         <span>Total:</span>
-                        <span>₹<span id="inv-calc-grand-total">4,500</span></span>
+                        <span>₹<span id="inv-calc-grand-total">0</span></span>
                     </div>
                     <div class="flex justify-between text-emerald-600 font-bold pt-1">
                         <span>Amount Paid:</span>
-                        <span>₹<span id="inv-calc-paid">4,500</span></span>
+                        <span>₹<span id="inv-calc-paid">0</span></span>
                     </div>
                     
-                    <!-- Balance Due Highlighted Bar -->
                     <div class="border-t-2 border-b-2 border-gray-900 py-2 mt-2 flex justify-between text-sm font-black text-gray-900">
                         <span>Balance Due:</span>
                         <span>₹<span id="inv-calc-due">0</span></span>
@@ -285,7 +289,6 @@
 
         </div>
 
-        <!-- Modal Bottom Action Bar (not printed) -->
         <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between no-print shrink-0">
             <span class="text-xs text-gray-500 font-semibold flex items-center gap-1.5">
                 <i class="fa-solid fa-circle-check text-emerald-500"></i> Invoice ready to export
@@ -303,42 +306,147 @@
 </div>
 
 <!-- ========================================== -->
-<!-- CLEAR DUE MODAL -->
+<!-- 💳 COLLECT DUE PAYMENT MODAL (With Date & Mode) -->
 <!-- ========================================== -->
-<div id="clear-due-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0" id="clear-due-modal-content">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <h3 class="text-sm font-bold text-gray-900">Collect Due Payment</h3>
-            <button onclick="closeClearDueModal()" class="text-gray-400 hover:text-gray-600 transition">
+<div id="clear-due-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 border border-gray-100" id="clear-due-modal-content">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 font-bold flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-gray-900">Collect Due Payment</h3>
+                    <p class="text-[11px] text-gray-400 font-medium">Record partial or full due payment</p>
+                </div>
+            </div>
+            <button onclick="closeClearDueModal()" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
                 <i class="fa-solid fa-xmark text-base"></i>
             </button>
         </div>
+        
         <div class="p-6">
             <form id="clear-due-form" onsubmit="handleClearDue(event)">
                 <input type="hidden" id="due-payment-id">
                 
-                <div class="mb-4">
-                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Member Name</label>
-                    <div id="due-member-name" class="font-bold text-gray-900 text-base"></div>
+                <!-- Member & Dues Summary Box -->
+                <div class="p-4 bg-gradient-to-r from-rose-50/60 to-amber-50/60 border border-rose-100 rounded-2xl mb-5 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">Member</span>
+                        <div id="due-member-name" class="font-extrabold text-gray-900 text-base">Member Name</div>
+                        <div id="due-member-plan" class="text-xs text-gray-500 font-medium mt-0.5">Cardio Plan</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-500 block">Remaining Due</span>
+                        <div class="text-2xl font-black text-rose-600">₹<span id="due-amount-display">0</span></div>
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Total Due Amount</label>
-                    <div class="text-2xl font-black text-rose-500">₹<span id="due-amount-display">0</span></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <!-- Amount Paying Now -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Amount Paying Now (₹) <span class="text-red-500">*</span></label>
+                        <input type="number" step="any" id="amount_paying" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#5d5fef] outline-none font-black text-base text-gray-900" placeholder="e.g. 300">
+                    </div>
+
+                    <!-- 🌟 Payment Date Input (User requested custom date picker) -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Payment Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="due_payment_date" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#5d5fef] outline-none font-bold text-xs text-gray-800">
+                    </div>
                 </div>
 
-                <div class="mb-5">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Amount Paying Now (₹)</label>
-                    <input type="number" step="any" id="amount_paying" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#5d5fef] outline-none font-bold text-sm text-gray-800" placeholder="Enter amount paying">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <!-- Payment Mode -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Payment Mode <span class="text-red-500">*</span></label>
+                        <select id="due_payment_mode" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#5d5fef] outline-none text-xs font-bold text-gray-800 cursor-pointer">
+                            <option value="cash">💵 Cash</option>
+                            <option value="upi">📱 UPI / QR (GPay / PhonePe / Paytm)</option>
+                            <option value="card">💳 Credit / Debit Card</option>
+                            <option value="net_banking">🏦 Net Banking</option>
+                            <option value="cheque">📝 Cheque</option>
+                            <option value="other">⚡ Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Notes / Remarks -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Notes (Optional)</label>
+                        <input type="text" id="due_notes" placeholder="e.g. Cleared 2nd installment" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#5d5fef] outline-none text-xs font-medium text-gray-800">
+                    </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3">
-                    <button type="button" onclick="closeClearDueModal()" class="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancel</button>
-                    <button type="submit" id="submit-due-btn" class="px-5 py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-xs font-bold rounded-xl transition shadow-md shadow-[#5d5fef]/25">
-                        Confirm & Update
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeClearDueModal()" class="px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition cursor-pointer">Cancel</button>
+                    <button type="submit" id="submit-due-btn" class="px-6 py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-xs font-black rounded-xl transition shadow-md shadow-[#5d5fef]/25 cursor-pointer">
+                        <i class="fa-solid fa-check mr-1.5"></i> Confirm & Save Payment
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 📜 PAYMENT INSTALLMENTS & HISTORY MODAL -->
+<!-- ========================================== -->
+<div id="history-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-95 opacity-0 border border-gray-100 flex flex-col max-h-[90vh]" id="history-modal-content">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80 shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-[#5d5fef]/10 text-[#5d5fef] font-bold flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-gray-900" id="hist-modal-title">Payment Installment History</h3>
+                    <p class="text-[11px] text-gray-400 font-medium" id="hist-member-subtitle">Member payment ledger</p>
+                </div>
+            </div>
+            <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 space-y-5">
+            <!-- Summary Badges -->
+            <div class="grid grid-cols-3 gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Plan Fee</span>
+                    <span class="text-base font-black text-gray-900">₹<span id="hist-total-amount">0</span></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Total Paid</span>
+                    <span class="text-base font-black text-emerald-600">₹<span id="hist-paid-amount">0</span></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-rose-500 uppercase tracking-wider block">Remaining Due</span>
+                    <span class="text-base font-black text-rose-500">₹<span id="hist-due-amount">0</span></span>
+                </div>
+            </div>
+
+            <!-- Installments Table -->
+            <div class="border border-gray-100 rounded-xl overflow-hidden shadow-2xs">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-gray-50/80 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                            <th class="px-4 py-3">#</th>
+                            <th class="px-4 py-3">Payment Date</th>
+                            <th class="px-4 py-3">Amount Paid</th>
+                            <th class="px-4 py-3">Mode</th>
+                            <th class="px-4 py-3">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hist-transactions-tbody" class="divide-y divide-gray-100 font-medium text-gray-700">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
+            <span class="text-[11px] text-gray-400 font-medium">All payments are safely recorded with time stamps</span>
+            <button onclick="closeHistoryModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer">Close</button>
         </div>
     </div>
 </div>
@@ -401,6 +509,7 @@ async function fetchPayments() {
         
         if (res.ok && result.success) {
             paymentsData = result.data || [];
+            populateMemberFilterOptions();
             renderPayments();
         } else {
             tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-rose-500 font-bold">Failed to load payments.</td></tr>`;
@@ -410,16 +519,56 @@ async function fetchPayments() {
     }
 }
 
+// Populate Member Filter dropdown from unique members
+function populateMemberFilterOptions() {
+    const select = document.getElementById('member-filter');
+    if (!select) return;
+
+    const currentVal = select.value;
+    const uniqueMembers = new Map();
+
+    paymentsData.forEach(p => {
+        if (p.member_id && p.member && p.member.user) {
+            uniqueMembers.set(p.member_id, p.member.user.name || 'Member');
+        }
+    });
+
+    let html = '<option value="all">All Members</option>';
+    uniqueMembers.forEach((name, id) => {
+        html += `<option value="${id}">${name}</option>`;
+    });
+
+    select.innerHTML = html;
+    
+    // Check URL params for member_id filter
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramMemberId = urlParams.get('member_id');
+    if (paramMemberId && uniqueMembers.has(parseInt(paramMemberId))) {
+        select.value = paramMemberId;
+    } else if (currentVal && uniqueMembers.has(parseInt(currentVal))) {
+        select.value = currentVal;
+    }
+}
+
 function renderPayments() {
     const tbody = document.getElementById('payments-tbody');
-    const search = document.getElementById('search-payment').value.toLowerCase();
+    const search = document.getElementById('search-payment').value.toLowerCase().trim();
     const dateFilter = document.getElementById('date-filter')?.value || 'all';
+    const memberFilter = document.getElementById('member-filter')?.value || 'all';
     
     let filtered = paymentsData.filter(p => {
-        const name = p.member?.user?.name || '';
-        const mobile = p.member?.user?.mobile || '';
-        const plan = p.member?.plan?.plan_group_name || '';
-        const matchesSearch = name.toLowerCase().includes(search) || mobile.includes(search) || plan.toLowerCase().includes(search);
+        // Member Filter
+        if (memberFilter !== 'all' && String(p.member_id) !== String(memberFilter)) {
+            return false;
+        }
+
+        // Search Filter
+        const name = (p.member?.user?.name || '').toLowerCase();
+        const mobile = (p.member?.user?.mobile || '');
+        const plan = (p.member?.plan?.plan_group_name || '').toLowerCase();
+        const invNum = ('INV-' + String(p.id).padStart(5, '0')).toLowerCase();
+        
+        const matchesSearch = name.includes(search) || mobile.includes(search) || plan.includes(search) || invNum.includes(search);
         if (!matchesSearch) return false;
 
         // Date Filter Evaluation
@@ -481,6 +630,7 @@ function renderPayments() {
         const invoiceNum = 'INV-' + String(p.id).padStart(5, '0');
         const planName = p.member?.plan?.plan_group_name || 'Standard Plan';
         const duration = p.member?.plan?.duration_months ? `${p.member.plan.duration_months} Mo` : '—';
+        const txCount = (p.transactions && p.transactions.length) ? p.transactions.length : (p.paid_amount > 0 ? 1 : 0);
 
         html += `
             <tr class="hover:bg-gray-50/80 transition-colors group">
@@ -505,16 +655,22 @@ function renderPayments() {
                     </span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <div class="flex items-center justify-end gap-2">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <!-- 📜 History / Installments Button -->
+                        <button onclick="openHistoryModal(${p.id})" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer" title="View Installments History">
+                            <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                            <span>${txCount}</span>
+                        </button>
+
                         <!-- 🌟 1-Click Direct Download PDF Button -->
                         <button onclick="directDownloadPDF(${p.id}, this)" class="px-3 py-1.5 bg-[#5d5fef]/10 hover:bg-[#5d5fef] text-[#5d5fef] hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Direct Download PDF">
                             <i class="fa-solid fa-file-pdf text-xs"></i>
-                            <span>Download PDF</span>
+                            <span class="hidden xl:inline">PDF</span>
                         </button>
 
                         <!-- Clear Due Button (if due exists) -->
                         ${p.due_amount > 0 ? `
-                            <button onclick="openClearDueModal(${p.id})" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer" title="Record Due Payment">
+                            <button onclick="openClearDueModal(${p.id})" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer" title="Record Due Payment">
                                 <i class="fa-solid fa-hand-holding-dollar text-xs"></i>
                                 <span>Pay Due</span>
                             </button>
@@ -536,19 +692,18 @@ function renderPayments() {
 document.getElementById('search-payment').addEventListener('input', renderPayments);
 
 // ==========================================
-// 🌟 POPULATE INVOICE DATA (Used by Direct Download & Preview)
+// 🌟 POPULATE INVOICE DATA
 // ==========================================
 function populateInvoiceData(p) {
     activeInvoiceData = p;
 
-    // Gym Details from Auth User or Payment Gym relation
+    // Gym Details
     const gymObj = p.gym || (user && user.gym) || {};
     const gymTitle = gymObj.name || gymName || 'GYMORA FITNESS';
     const gymContact = gymObj.contact_number || (user ? user.mobile : '+91 98765 43210');
     const gymAddr = gymObj.address || 'Fitness Central, Main Road';
     const gymGST = gymObj.gst_number || '';
 
-    // Populate Gym Header
     document.getElementById('inv-gym-name').textContent = gymTitle;
     document.getElementById('inv-gym-company-name').textContent = gymTitle;
     document.getElementById('inv-gym-address').textContent = gymAddr;
@@ -599,7 +754,7 @@ function populateInvoiceData(p) {
     }
     document.getElementById('inv-batch-timing').textContent = batchTiming;
 
-    // Financial Calculation Breakdown (Clean & Direct)
+    // Financial Calculation Breakdown
     const total = parseFloat(p.total_amount) || 0;
     const paid = parseFloat(p.paid_amount) || 0;
     const due = parseFloat(p.due_amount) || 0;
@@ -609,9 +764,29 @@ function populateInvoiceData(p) {
     document.getElementById('inv-calc-grand-total').textContent = total.toLocaleString('en-IN');
     document.getElementById('inv-calc-paid').textContent = paid.toLocaleString('en-IN');
     document.getElementById('inv-calc-due').textContent = due.toLocaleString('en-IN');
+
+    // Installments list in invoice
+    const installmentsSection = document.getElementById('inv-installments-section');
+    const installmentsList = document.getElementById('inv-installments-list');
+    if (p.transactions && p.transactions.length > 1) {
+        let txHtml = '';
+        p.transactions.forEach((tx, idx) => {
+            const txDate = new Date(tx.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            txHtml += `
+                <div class="flex items-center justify-between text-gray-700">
+                    <span>Inst #${idx + 1} (${txDate} via ${(tx.payment_mode || 'cash').toUpperCase()}):</span>
+                    <span class="font-bold text-emerald-600">₹${parseFloat(tx.amount).toLocaleString('en-IN')}</span>
+                </div>
+            `;
+        });
+        installmentsList.innerHTML = txHtml;
+        installmentsSection.style.display = 'block';
+    } else {
+        installmentsSection.style.display = 'none';
+    }
 }
 
-// 🌟 1-CLICK DIRECT PDF DOWNLOAD (Without showing popup modal)
+// 🌟 1-CLICK DIRECT PDF DOWNLOAD
 async function directDownloadPDF(paymentId, btnEl) {
     const p = paymentsData.find(x => x.id === paymentId);
     if (!p) return;
@@ -623,14 +798,13 @@ async function directDownloadPDF(paymentId, btnEl) {
         btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> Downloading...';
     }
 
-    // Populate data into template
     populateInvoiceData(p);
 
     const element = document.getElementById('invoice-printable-area');
     const invNum = 'INV-' + String(p.id).padStart(5, '0');
     const memberName = p.member?.user?.name || 'Member';
     const gymObj = p.gym || (user && user.gym) || {};
-    const gymTitle = (gymObj.name || 'FitFlex').replace(/\s+/g, '_');
+    const gymTitle = (gymObj.name || 'Gymora').replace(/\s+/g, '_');
     const filename = `${invNum}_${memberName.replace(/\s+/g, '_')}_${gymTitle}.pdf`;
 
     const opt = {
@@ -655,7 +829,6 @@ async function directDownloadPDF(paymentId, btnEl) {
     }
 }
 
-// Optional: Open Preview Modal
 function openInvoiceModal(paymentId) {
     const p = paymentsData.find(x => x.id === paymentId);
     if (!p) return;
@@ -682,19 +855,16 @@ function closeInvoiceModal() {
     }, 200);
 }
 
-// 🖨️ PRINT INVOICE
 function printInvoiceDocument() {
     window.print();
 }
 
-// 📥 DOWNLOAD CRISP PDF INVOICE (From inside modal)
 async function downloadInvoicePDF() {
     if (!activeInvoiceData) return;
     const btn = document.getElementById('btn-download-pdf');
     await directDownloadPDF(activeInvoiceData.id, btn);
 }
 
-// 📱 SHARE ON WHATSAPP
 function shareInvoiceWhatsApp() {
     if (!activeInvoiceData) return;
     
@@ -725,7 +895,7 @@ function shareInvoiceWhatsApp() {
 }
 
 // ==========================================
-// CLEAR DUE MODAL LOGIC
+// 💳 CLEAR DUE MODAL LOGIC (With Date & Mode)
 // ==========================================
 function openClearDueModal(id) {
     const payment = paymentsData.find(p => p.id === id);
@@ -733,9 +903,14 @@ function openClearDueModal(id) {
     
     document.getElementById('due-payment-id').value = id;
     document.getElementById('due-member-name').textContent = payment.member?.user?.name || 'Member';
+    document.getElementById('due-member-plan').textContent = (payment.member?.plan?.plan_group_name || 'Plan') + ' • ' + (payment.member?.user?.mobile || '');
     document.getElementById('due-amount-display').textContent = parseFloat(payment.due_amount).toLocaleString('en-IN');
+    
     document.getElementById('amount_paying').value = parseFloat(payment.due_amount);
     document.getElementById('amount_paying').max = payment.due_amount;
+    document.getElementById('due_payment_date').valueAsDate = new Date();
+    document.getElementById('due_payment_mode').value = 'cash';
+    document.getElementById('due_notes').value = '';
     
     const modal = document.getElementById('clear-due-modal');
     const content = document.getElementById('clear-due-modal-content');
@@ -766,6 +941,9 @@ async function handleClearDue(e) {
     
     const id = document.getElementById('due-payment-id').value;
     const amountPaying = document.getElementById('amount_paying').value;
+    const paymentDate = document.getElementById('due_payment_date').value;
+    const paymentMode = document.getElementById('due_payment_mode').value;
+    const notes = document.getElementById('due_notes').value;
 
     try {
         const res = await fetch(`/api/payments/${id}`, {
@@ -775,7 +953,12 @@ async function handleClearDue(e) {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ amount_paying: amountPaying })
+            body: JSON.stringify({ 
+                amount_paying: amountPaying,
+                payment_date: paymentDate,
+                payment_mode: paymentMode,
+                notes: notes
+            })
         });
         
         const result = await res.json();
@@ -791,13 +974,95 @@ async function handleClearDue(e) {
         showToast('Network error occurred', 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Confirm & Update';
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i> Confirm & Save Payment';
     }
+}
+
+// ==========================================
+// 📜 INSTALLMENTS HISTORY MODAL
+// ==========================================
+function openHistoryModal(id) {
+    const payment = paymentsData.find(p => p.id === id);
+    if (!payment) return;
+
+    const memberName = payment.member?.user?.name || 'Member';
+    const planName = payment.member?.plan?.plan_group_name || 'Standard Plan';
+    const invNum = 'INV-' + String(payment.id).padStart(5, '0');
+
+    document.getElementById('hist-modal-title').textContent = `${invNum} — Installment Timeline`;
+    document.getElementById('hist-member-subtitle').textContent = `${memberName} • ${planName}`;
+    
+    document.getElementById('hist-total-amount').textContent = parseFloat(payment.total_amount).toLocaleString('en-IN');
+    document.getElementById('hist-paid-amount').textContent = parseFloat(payment.paid_amount).toLocaleString('en-IN');
+    document.getElementById('hist-due-amount').textContent = parseFloat(payment.due_amount).toLocaleString('en-IN');
+
+    const tbody = document.getElementById('hist-transactions-tbody');
+    const txs = payment.transactions || [];
+
+    if (txs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-400 font-medium">
+                    No installments logged yet.
+                </td>
+            </tr>
+        `;
+    } else {
+        let html = '';
+        const modeBadges = {
+            'cash': 'bg-blue-50 text-blue-700 border-blue-100',
+            'upi': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+            'card': 'bg-purple-50 text-purple-700 border-purple-100',
+            'net_banking': 'bg-indigo-50 text-indigo-700 border-indigo-100',
+            'cheque': 'bg-amber-50 text-amber-700 border-amber-100',
+            'other': 'bg-gray-100 text-gray-700 border-gray-200'
+        };
+
+        txs.forEach((tx, idx) => {
+            const dateStr = new Date(tx.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const mode = (tx.payment_mode || 'cash').toLowerCase();
+            const badgeClass = modeBadges[mode] || modeBadges['other'];
+
+            html += `
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                    <td class="px-4 py-3 font-bold text-gray-400">#${idx + 1}</td>
+                    <td class="px-4 py-3 font-bold text-gray-900">${dateStr}</td>
+                    <td class="px-4 py-3 font-black text-emerald-600">₹${parseFloat(tx.amount).toLocaleString('en-IN')}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${badgeClass}">
+                            ${mode}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-500">${tx.notes || '—'}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    const modal = document.getElementById('history-modal');
+    const content = document.getElementById('history-modal-content');
+    modal.classList.remove('hidden');
+
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
+function closeHistoryModal() {
+    const modal = document.getElementById('history-modal');
+    const content = document.getElementById('history-modal-content');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
 }
 
 // 🗑️ DELETE / VOID PAYMENT TRANSACTION
 async function deletePayment(id, invNum) {
-    if (!confirm(`Are you sure you want to delete invoice ${invNum}? This will remove it from reports and member payment totals.`)) {
+    if (!confirm(`Are you sure you want to delete invoice ${invNum}? This will remove it and its installments.`)) {
         return;
     }
 

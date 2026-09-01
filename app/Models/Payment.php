@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payment extends Model
 {
@@ -14,4 +15,5 @@ class Payment extends Model
 
     public function member(): BelongsTo { return $this->belongsTo(Member::class); }
     public function gym(): BelongsTo { return $this->belongsTo(Gym::class); }
+    public function transactions(): HasMany { return $this->hasMany(PaymentTransaction::class)->orderBy('payment_date', 'asc')->orderBy('id', 'asc'); }
 }
