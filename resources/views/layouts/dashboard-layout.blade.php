@@ -46,7 +46,7 @@
 
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
     let user = null;
-    let gymName = 'Gymora';
+    let gymName = 'Flexvora';
     
     if (userStr) {
         try {

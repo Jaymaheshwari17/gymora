@@ -2,12 +2,12 @@
 <aside class="w-[260px] bg-white border-r border-gray-100 flex flex-col hidden md:flex shrink-0 h-screen select-none">
     <!-- Logo -->
     <div class="px-6 pt-7 pb-4 flex items-center gap-3.5">
-        <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-white shadow-sm shrink-0">
-            <img id="sidebar-gym-logo-img" src="" class="w-full h-full object-cover rounded-xl" style="display: none;">
-            <i id="sidebar-gym-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
+        <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
+            <img id="sidebar-gym-logo-img" src="{{ asset('flexvora.png') }}" class="w-full h-full object-cover rounded-xl" alt="Flexvora">
+            <i id="sidebar-gym-logo-icon" class="fa-solid fa-dumbbell text-lg" style="display: none;"></i>
         </div>
         <div class="flex-1 min-w-0">
-            <span id="sidebar-logo-gym-name" class="font-black text-xl tracking-tight text-gray-900 leading-none block truncate">GYMORA</span>
+            <span id="sidebar-logo-gym-name" class="font-black text-xl tracking-tight text-gray-900 leading-none block truncate">FLEXVORA</span>
             <span class="text-[11px] text-gray-500 font-semibold block truncate mt-1">Gym Management System</span>
         </div>
     </div>

@@ -4,6 +4,84 @@
 <!-- html2pdf for high quality client-side PDF download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+<!-- 🌟 Select2 CSS & JS for Fast Searchable Member Dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+/* Select2 Custom Clean Tailwind Styling */
+.select2-container--default .select2-selection--single {
+    background-color: transparent !important;
+    border: none !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #374151 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 28px !important;
+    padding-left: 2px !important;
+    padding-right: 18px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 28px !important;
+    right: 2px !important;
+}
+.select2-dropdown {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    z-index: 99999 !important;
+}
+.select2-container--default .select2-search--dropdown {
+    padding: 8px !important;
+    background: #f9fafb !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 0.6rem !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    outline: none !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    caret-color: #5d5fef !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field::placeholder {
+    color: #9ca3af !important;
+    font-weight: 500 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: #5d5fef !important;
+    box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.18) !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+}
+.select2-container--default .select2-results__option {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #5d5fef !important;
+    color: #ffffff !important;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #eef2ff !important;
+    color: #4338ca !important;
+    font-weight: 700 !important;
+}
+</style>
+
 <div class="flex-1 overflow-y-auto p-8 bg-[#f8f9fc]">
     <div class="space-y-6 max-w-7xl mx-auto">
 
@@ -20,10 +98,10 @@
                     <input type="text" id="search-payment" placeholder="Search member, phone or invoice..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-48 sm:w-56 bg-white shadow-2xs font-medium">
                 </div>
 
-                <!-- 🌟 Filter: Member Filter (Searchable / Select) -->
+                <!-- 🌟 Filter: Member Filter (Searchable Select2) -->
                 <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                     <i class="fa-solid fa-user text-[#5d5fef] text-xs"></i>
-                    <select id="member-filter" onchange="renderPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[160px] truncate">
+                    <select id="member-filter" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                         <option value="all">All Members</option>
                         <!-- Populated dynamically -->
                     </select>
@@ -176,15 +254,15 @@
                     </div>
                     <div>
                         <h1 class="text-3xl font-black tracking-tight text-gray-900 leading-none">INVOICE</h1>
-                        <span class="text-xs font-bold text-indigo-600 tracking-wide mt-1 block uppercase" id="inv-gym-name">GYMORA FITNESS</span>
+                        <span class="text-xs font-bold text-indigo-600 tracking-wide mt-1 block uppercase" id="inv-gym-name">FLEXVORA FITNESS</span>
                     </div>
                 </div>
 
                 <div class="text-right text-xs text-gray-600 leading-relaxed font-medium">
-                    <div class="font-bold text-gray-900 uppercase text-xs tracking-wider" id="inv-gym-company-name">GYMORA FITNESS CLUB</div>
+                    <div class="font-bold text-gray-900 uppercase text-xs tracking-wider" id="inv-gym-company-name">FLEXVORA FITNESS CLUB</div>
                     <div id="inv-gym-address">123 Fitness Boulevard, Sector 14</div>
                     <div id="inv-gym-phone">+91 98765 43210</div>
-                    <div id="inv-gym-email">support@gymora.com</div>
+                    <div id="inv-gym-email">support@flexvora.com</div>
                     <div id="inv-gym-gst-container" class="text-[11px] text-gray-400 font-bold mt-0.5">GSTIN: <span id="inv-gym-gst"></span></div>
                 </div>
             </div>
@@ -519,34 +597,75 @@ async function fetchPayments() {
     }
 }
 
-// Populate Member Filter dropdown from unique members
-function populateMemberFilterOptions() {
-    const select = document.getElementById('member-filter');
-    if (!select) return;
+// Populate Member Filter dropdown from unique members + all gym members with Select2
+async function populateMemberFilterOptions() {
+    const $select = $('#member-filter');
+    if (!$select.length) return;
 
-    const currentVal = select.value;
+    const currentVal = $select.val();
     const uniqueMembers = new Map();
 
+    // 1. Fetch all gym members so all 50+ members appear with name & mobile for easy search
+    try {
+        const mRes = await fetch('/api/members', {
+            headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+        });
+        const mData = await mRes.json();
+        if (mRes.ok && mData.success && Array.isArray(mData.data)) {
+            mData.data.forEach(m => {
+                const name = (m.user && m.user.name) ? m.user.name : (m.name || 'Member');
+                const phone = (m.user && m.user.mobile) ? m.user.mobile : (m.phone || '');
+                uniqueMembers.set(m.id, { name, phone });
+            });
+        }
+    } catch (e) {}
+
+    // 2. Also merge from paymentsData
     paymentsData.forEach(p => {
         if (p.member_id && p.member && p.member.user) {
-            uniqueMembers.set(p.member_id, p.member.user.name || 'Member');
+            if (!uniqueMembers.has(p.member_id)) {
+                uniqueMembers.set(p.member_id, {
+                    name: p.member.user.name || 'Member',
+                    phone: p.member.user.mobile || ''
+                });
+            }
         }
     });
 
     let html = '<option value="all">All Members</option>';
-    uniqueMembers.forEach((name, id) => {
-        html += `<option value="${id}">${name}</option>`;
+    uniqueMembers.forEach((info, id) => {
+        const label = info.phone ? `${info.name} (${info.phone})` : info.name;
+        html += `<option value="${id}">${label}</option>`;
     });
 
-    select.innerHTML = html;
-    
+    $select.html(html);
+
+    // 3. Initialize Select2 with live searchable box
+    if (typeof $.fn.select2 === 'function') {
+        $select.select2({
+            placeholder: 'Search member...',
+            width: '185px',
+            dropdownAutoWidth: true
+        }).off('change.select2Member').on('change.select2Member', function() {
+            renderPayments();
+        }).off('select2:open').on('select2:open', function() {
+            setTimeout(() => {
+                const searchField = document.querySelector('.select2-container--open .select2-search__field');
+                if (searchField) {
+                    searchField.setAttribute('placeholder', '🔍 Search name or phone...');
+                    searchField.focus();
+                }
+            }, 10);
+        });
+    }
+
     // Check URL params for member_id filter
     const urlParams = new URLSearchParams(window.location.search);
     const paramMemberId = urlParams.get('member_id');
     if (paramMemberId && uniqueMembers.has(parseInt(paramMemberId))) {
-        select.value = paramMemberId;
+        $select.val(paramMemberId).trigger('change');
     } else if (currentVal && uniqueMembers.has(parseInt(currentVal))) {
-        select.value = currentVal;
+        $select.val(currentVal).trigger('change');
     }
 }
 
@@ -699,7 +818,7 @@ function populateInvoiceData(p) {
 
     // Gym Details
     const gymObj = p.gym || (user && user.gym) || {};
-    const gymTitle = gymObj.name || gymName || 'GYMORA FITNESS';
+    const gymTitle = gymObj.name || gymName || 'FLEXVORA FITNESS';
     const gymContact = gymObj.contact_number || (user ? user.mobile : '+91 98765 43210');
     const gymAddr = gymObj.address || 'Fitness Central, Main Road';
     const gymGST = gymObj.gst_number || '';
@@ -708,7 +827,7 @@ function populateInvoiceData(p) {
     document.getElementById('inv-gym-company-name').textContent = gymTitle;
     document.getElementById('inv-gym-address').textContent = gymAddr;
     document.getElementById('inv-gym-phone').textContent = gymContact;
-    document.getElementById('inv-gym-email').textContent = (user && user.email) ? user.email : 'contact@gymora.com';
+    document.getElementById('inv-gym-email').textContent = (user && user.email) ? user.email : 'contact@flexvora.com';
 
     if (gymGST) {
         document.getElementById('inv-gym-gst').textContent = gymGST;
@@ -804,7 +923,7 @@ async function directDownloadPDF(paymentId, btnEl) {
     const invNum = 'INV-' + String(p.id).padStart(5, '0');
     const memberName = p.member?.user?.name || 'Member';
     const gymObj = p.gym || (user && user.gym) || {};
-    const gymTitle = (gymObj.name || 'Gymora').replace(/\s+/g, '_');
+    const gymTitle = (gymObj.name || 'Flexvora').replace(/\s+/g, '_');
     const filename = `${invNum}_${memberName.replace(/\s+/g, '_')}_${gymTitle}.pdf`;
 
     const opt = {
@@ -874,7 +993,7 @@ function shareInvoiceWhatsApp() {
 
     const invNum = 'INV-' + String(activeInvoiceData.id).padStart(5, '0');
     const gymObj = activeInvoiceData.gym || (user && user.gym) || {};
-    const gymTitle = gymObj.name || gymName || 'Gymora';
+    const gymTitle = gymObj.name || gymName || 'Flexvora';
     const planName = activeInvoiceData.member?.plan?.plan_group_name || 'Gym Membership';
     const paidAmt = parseFloat(activeInvoiceData.paid_amount).toLocaleString('en-IN');
     const dueAmt = parseFloat(activeInvoiceData.due_amount).toLocaleString('en-IN');

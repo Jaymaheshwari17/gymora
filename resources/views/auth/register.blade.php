@@ -5,7 +5,7 @@
     
     <!-- Left Panel -->
     <div class="hidden lg:flex w-1/2 relative bg-black items-center justify-center overflow-hidden">
-        <img src="/background/gymora1.png" alt="Gym Background" class="absolute inset-0 w-full h-full object-cover opacity-60">
+        <img src="/background/flexvora1.png" alt="Gym Background" class="absolute inset-0 w-full h-full object-cover opacity-60">
         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10"></div>
         
         <div class="relative z-10 w-full max-w-xl p-12 mt-auto">
@@ -55,14 +55,12 @@
             
             <div class="text-center mb-6">
                 <!-- Logo -->
-                <div class="flex items-center justify-center gap-2 text-2xl font-bold tracking-tight text-gray-900 mb-2">
-                    <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                        <i class="fa-solid fa-dumbbell text-xs"></i>
-                    </div>
-                    <span>GYMORA</span>
+                <div class="flex items-center justify-center gap-2.5 text-2xl font-black tracking-tight text-gray-900 mb-2">
+                    <img src="{{ asset('flexvora.png') }}" class="w-8 h-8 object-cover rounded-xl shadow-sm" alt="Flexvora">
+                    <span>FLEXVORA</span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Create Account</h1>
-                <p class="text-gray-500 text-sm">Join Gymora and start your fitness journey</p>
+                <p class="text-gray-500 text-sm">Join Flexvora and start your fitness journey</p>
             </div>
 
             <!-- General Alert Box -->

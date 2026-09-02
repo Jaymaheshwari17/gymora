@@ -300,7 +300,7 @@
                     </h4>
                     <p class="text-sm text-gray-500 mb-6 bg-indigo-50 text-indigo-700 p-4 rounded-xl border border-purple-100 flex items-start gap-3">
                         <i class="fa-solid fa-circle-info mt-0.5"></i>
-                        <span>Set a password for the member to log into the Gymora App. They can change it later.</span>
+                        <span>Set a password for the member to log into the Flexvora App. They can change it later.</span>
                     </p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

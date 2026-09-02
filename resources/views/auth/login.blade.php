@@ -5,7 +5,7 @@
     
     <!-- Left Panel -->
     <div class="hidden lg:flex w-1/2 relative bg-black items-center justify-center overflow-hidden">
-        <img src="/background/gymora1.png" alt="Gym Background" class="absolute inset-0 w-full h-full object-cover opacity-60">
+        <img src="/background/flexvora1.png" alt="Gym Background" class="absolute inset-0 w-full h-full object-cover opacity-60">
         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10"></div>
         
         <div class="relative z-10 w-full max-w-xl p-12 mt-auto">
@@ -54,13 +54,11 @@
         <div class="w-full max-w-md">
             <!-- Logo -->
             <div class="flex flex-col items-center justify-center mb-8">
-                <div class="flex items-center gap-2 text-2xl font-bold tracking-tight text-gray-900 mb-1">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                        <i class="fa-solid fa-dumbbell text-sm"></i>
-                    </div>
-                    <span>GYMORA</span>
+                <div class="flex items-center gap-3 text-2xl font-black tracking-tight text-gray-900 mb-1">
+                    <img src="{{ asset('flexvora.png') }}" class="w-10 h-10 object-cover rounded-xl shadow-md shadow-indigo-600/20" alt="Flexvora">
+                    <span>FLEXVORA</span>
                 </div>
-                <p class="text-gray-500 text-sm font-medium">Gym Management System</p>
+                <p class="text-gray-500 text-xs font-semibold">Gym Management System</p>
             </div>
 
             <div class="text-center mb-8">

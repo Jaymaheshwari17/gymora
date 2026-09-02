@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard Routes
     Route::get('/dashboard/owner-stats', [\App\Http\Controllers\Api\DashboardController::class, 'getOwnerStats']);
+    Route::get('/dashboard/trainer-stats', [\App\Http\Controllers\Api\DashboardController::class, 'getTrainerStats']);
     Route::get('/dashboard/member-stats', [\App\Http\Controllers\Api\DashboardController::class, 'getMemberStats']);
     Route::get('/dashboard/notifications', [\App\Http\Controllers\Api\DashboardController::class, 'getNotifications']);
 

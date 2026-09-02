@@ -17,7 +17,7 @@
         <!-- QR Attendance -->
         <a href="/attendance" class="bg-sky-50 hover:bg-sky-100 text-sky-600 border border-sky-200/80 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 hover:-translate-y-0.5 shadow-2xs">
             <i class="fa-solid fa-qrcode text-xs"></i>
-            <span>QR Attendance</span>
+            <span>Attendance</span>
         </a>
     </div>
 
@@ -72,12 +72,28 @@
         <!-- User Profile Pill -->
         <div class="relative">
             <div class="flex items-center gap-3 cursor-pointer select-none" id="profile-toggle" onclick="toggleProfileDropdown()">
-                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" alt="Profile" class="w-10 h-10 rounded-full object-cover border border-gray-200/80 shadow-sm" id="topbar-avatar">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Profile" class="w-10 h-10 rounded-full object-cover border border-gray-200/80 shadow-sm bg-gray-100" id="topbar-avatar">
                 <div class="text-left hidden sm:block">
-                    <div class="text-xs font-bold text-gray-900 leading-tight" id="topbar-name">Mayur</div>
+                    <div class="text-xs font-bold text-gray-900 leading-tight" id="topbar-name">Jay Maheshwari</div>
                     <div class="text-[11px] text-gray-400 font-medium leading-tight mt-0.5" id="topbar-role">Gym Owner</div>
                 </div>
             </div>
+            <script>
+                (function() {
+                    try {
+                        var uStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+                        if (uStr) {
+                            var u = JSON.parse(uStr);
+                            if (u && u.photo) {
+                                document.getElementById('topbar-avatar').src = u.photo.startsWith('http') ? u.photo : ('/' + u.photo);
+                            }
+                            if (u && u.name) {
+                                document.getElementById('topbar-name').textContent = u.name;
+                            }
+                        }
+                    } catch(e) {}
+                })();
+            </script>
             
             <!-- Profile Dropdown -->
             <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 origin-top-right transition-all">

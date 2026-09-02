@@ -26,55 +26,34 @@ class DashboardController extends Controller
             
             $gymId = $request->user()->gym_id;
 
-            // Date Range Filtering Parameters
-            $period = $request->query('period', 'this_month');
+            // Date Range Filtering Parameters (start_date & end_date)
             $customStart = $request->query('start_date');
             $customEnd = $request->query('end_date');
 
-            $now = now();
-            $periodLabel = 'This Month';
             $startDate = null;
             $endDate = null;
+            $isDateFiltered = false;
+            $periodLabel = 'Total';
 
-            if ($period === 'today') {
-                $startDate = now()->startOfDay();
-                $endDate = now()->endOfDay();
-                $periodLabel = 'Today';
-            } elseif ($period === 'this_week') {
-                $startDate = now()->startOfWeek();
-                $endDate = now()->endOfWeek();
-                $periodLabel = 'This Week';
-            } elseif ($period === 'last_month') {
-                $startDate = now()->subMonth()->startOfMonth();
-                $endDate = now()->subMonth()->endOfMonth();
-                $periodLabel = 'Last Month';
-            } elseif ($period === 'all_time') {
-                $startDate = null;
-                $endDate = null;
-                $periodLabel = 'All Time';
-            } elseif ($period === 'custom' && $customStart && $customEnd) {
-                $startDate = \Carbon\Carbon::parse($customStart)->startOfDay();
-                $endDate = \Carbon\Carbon::parse($customEnd)->endOfDay();
-                $periodLabel = $startDate->format('d M') . ' - ' . $endDate->format('d M Y');
-            } else {
-                // Default: this_month
-                $startDate = now()->startOfMonth();
-                $endDate = now()->endOfMonth();
-                $periodLabel = 'This Month (' . now()->format('M Y') . ')';
+            if ($customStart && $customEnd) {
+                try {
+                    $startDate = \Carbon\Carbon::parse($customStart)->startOfDay();
+                    $endDate = \Carbon\Carbon::parse($customEnd)->endOfDay();
+                    $isDateFiltered = true;
+                    $periodLabel = $startDate->format('d M') . ' - ' . $endDate->format('d M Y');
+                } catch (\Exception $de) {
+                    $startDate = null;
+                    $endDate = null;
+                    $isDateFiltered = false;
+                }
             }
 
-            // 1. Top Stats with Date Filter Awareness
+            // 1. Top Stats (All Data by default, or Filtered by Date Range)
             $totalMembers = Member::where('gym_id', $gymId)->count();
             $activeMembers = Member::where('gym_id', $gymId)->where('status', 'active')->count();
 
-            // Filtered Collected Fees
-            if ($period === 'all_time') {
-                $collectedFees = (float) Payment::where('gym_id', $gymId)->sum('paid_amount');
-                $pendingFees = (float) Payment::where('gym_id', $gymId)->sum('due_amount');
-                $newMembersThisPeriod = $totalMembers;
-                $dueThisPeriod = Payment::where('gym_id', $gymId)->where('due_amount', '>', 0)->distinct('member_id')->count('member_id');
-            } else {
-                // Check payment transactions within range or fallback to payments table
+            if ($isDateFiltered && $startDate && $endDate) {
+                // Transactions or payments between dates
                 $txSum = (float) \App\Models\PaymentTransaction::where('gym_id', $gymId)
                     ->whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()])
                     ->sum('amount');
@@ -89,9 +68,6 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->sum('due_amount');
 
-                // If pending is 0 in custom/month range but total gym has pending dues, provide gym pending as well
-                $totalGymPending = (float) Payment::where('gym_id', $gymId)->sum('due_amount');
-
                 $newMembersThisPeriod = Member::where('gym_id', $gymId)
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->count();
@@ -101,6 +77,12 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$startDate, $endDate])
                     ->distinct('member_id')
                     ->count('member_id');
+            } else {
+                // Default: All Data (Total overall stats)
+                $collectedFees = (float) Payment::where('gym_id', $gymId)->sum('paid_amount');
+                $pendingFees = (float) Payment::where('gym_id', $gymId)->sum('due_amount');
+                $newMembersThisPeriod = $totalMembers;
+                $dueThisPeriod = Payment::where('gym_id', $gymId)->where('due_amount', '>', 0)->distinct('member_id')->count('member_id');
             }
 
             $membersGrowth = 12;
@@ -135,6 +117,7 @@ class DashboardController extends Controller
             $expiringSoon = 0;
             $expiredThisMonth = 0;
             
+            $now = now();
             $sevenDaysFromNow = now()->addDays(7);
             $startOfMonth = now()->startOfMonth();
             
@@ -277,7 +260,8 @@ class DashboardController extends Controller
             }
 
             return $this->successResponse('Stats retrieved', [
-                'period' => $period,
+                'period' => $isDateFiltered ? 'custom' : 'all_time',
+                'is_date_filtered' => $isDateFiltered,
                 'period_label' => $periodLabel,
                 'top_stats' => [
                     'total_members' => $totalMembers,
@@ -320,6 +304,106 @@ class DashboardController extends Controller
         } catch (Exception $e) {
             Log::error('DashboardController@getOwnerStats Exception: ' . $e->getMessage());
             return $this->errorResponse('Failed to retrieve stats.', [], 500);
+        }
+    }
+
+    /**
+     * Dynamic Trainer Dashboard Stats
+     */
+    public function getTrainerStats(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!in_array($user->role, ['trainer', 'owner', 'staff'])) {
+                return $this->errorResponse('Unauthorized.', [], 403);
+            }
+
+            $gymId = $user->gym_id;
+            $trainerId = $user->role === 'trainer' ? $user->id : null;
+
+            // Assigned members for this trainer (or all gym members if trainer has none assigned yet)
+            $membersQuery = Member::with(['user', 'plan', 'batch'])
+                ->where('gym_id', $gymId);
+            
+            if ($trainerId) {
+                $assignedCount = Member::where('gym_id', $gymId)->where('trainer_id', $trainerId)->count();
+                if ($assignedCount > 0) {
+                    $membersQuery->where('trainer_id', $trainerId);
+                }
+            }
+
+            $members = $membersQuery->latest()->get();
+            $totalMembers = $members->count();
+            $activeMembers = $members->where('status', 'active')->count();
+
+            // Today's attendance
+            $memberIds = $members->pluck('id')->toArray();
+            $todayAttendance = Attendance::where('gym_id', $gymId)
+                ->whereIn('member_id', $memberIds)
+                ->whereDate('date', today())
+                ->get()
+                ->keyBy('member_id');
+
+            $presentToday = $todayAttendance->where('status', 'P')->count();
+            $pendingToday = max(0, $totalMembers - $presentToday);
+            $attendanceRate = $totalMembers > 0 ? round(($presentToday / $totalMembers) * 100) : 0;
+
+            // Dynamic Today's Schedule
+            $todaySchedule = [];
+            foreach ($members as $m) {
+                $att = $todayAttendance->get($m->id);
+                $isCompleted = $att && $att->status === 'P';
+
+                $batchTiming = 'Flexible Timing';
+                if ($m->batch) {
+                    if (!empty($m->batch->batch_time) && !empty($m->batch->batch_name)) {
+                        $batchTiming = $m->batch->batch_name . ' (' . $m->batch->batch_time . ')';
+                    } elseif (!empty($m->batch->batch_time)) {
+                        $batchTiming = $m->batch->batch_time;
+                    } elseif (!empty($m->batch->batch_name)) {
+                        $batchTiming = $m->batch->batch_name;
+                    }
+                }
+
+                $todaySchedule[] = [
+                    'id' => $m->id,
+                    'name' => $m->user ? $m->user->name : 'Member',
+                    'workout' => $m->plan ? $m->plan->plan_group_name : 'General Fitness',
+                    'timing' => $batchTiming,
+                    'status' => $isCompleted ? 'completed' : 'upcoming',
+                    'photo' => $m->user ? $m->user->photo : null,
+                    'mobile' => $m->user ? $m->user->mobile : ''
+                ];
+            }
+
+            // Dynamic Recent Members
+            $recentMembers = [];
+            foreach ($members->take(10) as $m) {
+                $recentMembers[] = [
+                    'id' => $m->id,
+                    'created_at' => $m->created_at ? $m->created_at->toISOString() : null,
+                    'user' => [
+                        'name' => $m->user ? $m->user->name : 'Member',
+                        'photo' => $m->user ? $m->user->photo : null,
+                        'mobile' => $m->user ? $m->user->mobile : ''
+                    ],
+                    'plan' => $m->plan ? $m->plan->plan_group_name : 'Membership',
+                    'batch' => ($m->batch && !empty($m->batch->batch_name)) ? $m->batch->batch_name : 'General Batch'
+                ];
+            }
+
+            return $this->successResponse('Trainer stats retrieved successfully', [
+                'active_members' => $activeMembers,
+                'total_members' => $totalMembers,
+                'present_today' => $presentToday,
+                'pending_today' => $pendingToday,
+                'attendance_rate' => $attendanceRate,
+                'today_schedule' => $todaySchedule,
+                'recent_members' => $recentMembers
+            ]);
+        } catch (\Exception $e) {
+            Log::error('DashboardController@getTrainerStats Exception: ' . $e->getMessage());
+            return $this->errorResponse('Failed to retrieve trainer stats.', [], 500);
         }
     }
 
