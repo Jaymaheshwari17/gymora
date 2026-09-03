@@ -13,6 +13,11 @@ class Gym extends Model
         'name',
         'gym_code',
         'logo',
+        'contact_number',
+        'address',
+        'gst_number',
+        'instagram_link',
+        'facebook_link',
     ];
 
     /**

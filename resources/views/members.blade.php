@@ -383,7 +383,7 @@
                             <span class="font-semibold text-gray-600">Amount Received Now</span>
                             <div class="flex items-center gap-2">
                                 <span class="text-gray-400">₹</span>
-                                <input type="number" id="amount_received" min="0" value="0" class="w-32 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-right font-bold text-green-600 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all" oninput="calculatePending()">
+                                <input type="number" id="amount_received" min="0" value="0" class="w-32 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-right font-bold text-green-600 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all" oninput="amountReceivedTouched = true; calculatePending()">
                             </div>
                         </div>
                         <div class="pt-4 border-t border-gray-200 flex items-center justify-between">
@@ -536,6 +536,7 @@
     let dataTable = null;
     let currentStep = 1;
     let isEditing = false;
+    let amountReceivedTouched = false;
     const totalSteps = 4;
 
     // Wait for DOM
@@ -833,13 +834,17 @@
     // ---- Wizard Logic ----
     function openWizardModal() {
         isEditing = false;
+        amountReceivedTouched = false;
         document.getElementById('wizard-title').textContent = 'New Member Registration';
         document.getElementById('member-form').reset();
         document.getElementById('photo-preview').src = '';
         document.getElementById('photo-preview').classList.add('hidden');
         document.getElementById('joining_date').valueAsDate = new Date();
         document.getElementById('plan_amount').value = 0;
+        document.getElementById('discount').value = 0;
+        document.getElementById('amount_received').value = 0;
         document.getElementById('total_amount_display').textContent = '0';
+        document.getElementById('pending_amount_display').textContent = '0';
         document.getElementById('status-container').style.display = 'none';
         
         // Show required stars for password
@@ -855,6 +860,7 @@
     // We can populate the wizard with existing data for edit
     function openEditWizard(member) {
         isEditing = true;
+        amountReceivedTouched = false;
         document.getElementById('wizard-title').textContent = 'Edit Member Profile';
         document.getElementById('member-form').reset();
         document.getElementById('member_id').value = member.id;
@@ -887,15 +893,16 @@
         // Step 3
         if(member.plan_id) document.getElementById('plan_id').value = member.plan_id;
         if(member.joining_date) document.getElementById('joining_date').value = member.joining_date;
-        if(member.discount) document.getElementById('discount').value = parseFloat(member.discount);
+        document.getElementById('discount').value = (member.discount !== undefined && member.discount !== null) ? parseFloat(member.discount) : 0;
         
+        let paidAmount = 0;
         if (member.payments && member.payments.length > 0) {
-            document.getElementById('amount_received').value = parseFloat(member.payments[member.payments.length - 1].paid_amount);
-        } else {
-            document.getElementById('amount_received').value = 0;
+            const sortedPayments = [...member.payments].sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
+            paidAmount = parseFloat(sortedPayments[0].paid_amount) || 0;
         }
+        document.getElementById('amount_received').value = paidAmount;
         
-        calculateTotal(); // Trigger calculation based on selected plan
+        calculateTotal(); // Trigger calculation based on selected plan (will not overwrite amount_received because isEditing = true)
 
         // Step 4
         if(member.batch_id) document.getElementById('batch_id').value = member.batch_id;
@@ -1220,7 +1227,7 @@
     // Dynamic Calculations
     function calculateTotal() {
         const select = document.getElementById('plan_id');
-        const option = select.options[select.selectedIndex];
+        const option = select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
         
         let planAmount = parseFloat(option ? option.getAttribute('data-amount') : 0) || 0;
         let discount = parseFloat(document.getElementById('discount').value) || 0;
@@ -1230,7 +1237,13 @@
         if(total < 0) total = 0;
         
         document.getElementById('total_amount_display').textContent = total.toLocaleString();
-        document.getElementById('amount_received').value = total;
+        
+        // ONLY auto-fill amount_received with total for NEW member registration if user hasn't typed a custom amount!
+        // In Edit mode (isEditing = true), NEVER overwrite the member's existing paid amount!
+        if (!isEditing && !amountReceivedTouched) {
+            document.getElementById('amount_received').value = total;
+        }
+        
         calculatePending();
     }
 
