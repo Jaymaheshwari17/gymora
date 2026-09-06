@@ -75,7 +75,7 @@
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-orange-500" id="stat-expired-month">0</span>
-                <a href="/members?filter=expired" class="bg-orange-50 hover:bg-orange-100 text-orange-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
+                <a href="/members?filter=expired_month" class="bg-orange-50 hover:bg-orange-100 text-orange-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
             </div>
         </div>
 
@@ -856,18 +856,80 @@
         }
 
         let html = '';
-        plans.slice(0, 3).forEach((p, idx) => {
+        plans.slice(0, 4).forEach((p, idx) => {
+            const isTop = idx === 0 && (p.members > 0 || p.is_highest_demand);
+            const rankBadge = isTop
+                ? `<span class="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center text-[10px] font-black shadow-xs shrink-0">1</span>`
+                : `<span class="w-5 h-5 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-[10px] font-bold shrink-0">${idx + 1}</span>`;
+
+            const barGradient = isTop
+                ? 'bg-gradient-to-r from-amber-500 to-emerald-500'
+                : 'bg-[#5d5fef]';
+
+            const priceFormatted = p.formatted_amount || ('₹' + Number(p.amount || 0).toLocaleString('en-IN'));
+            const durationText = p.duration_label || (p.duration_months ? `${p.duration_months} Mo` : 'Plan');
+            const groupText = p.group_name || p.name || 'Membership';
+            const salesFormatted = p.formatted_sales || ('₹' + Number(p.total_sales || 0).toLocaleString('en-IN'));
+
             html += `
-                <div>
-                    <div class="flex items-center justify-between mb-1 text-xs">
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded-full border border-indigo-200 text-[#5d5fef] flex items-center justify-center text-[10px] font-bold">${idx + 1}</span>
-                            <span class="font-bold text-gray-900">${p.name}</span>
+                <div class="relative group p-2.5 -mx-1 rounded-xl hover:bg-gray-50/80 transition-all cursor-pointer">
+                    <!-- Rich Interactive Hover Tooltip -->
+                    <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col gap-1.5 w-64 bg-gray-950/95 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl z-50 pointer-events-none text-xs border border-gray-800">
+                        <div class="flex items-center justify-between border-b border-gray-800 pb-1.5">
+                            <span class="font-extrabold text-white text-xs flex items-center gap-1.5">
+                                <i class="fa-solid fa-tag text-[#5d5fef]"></i>
+                                ${groupText} (${durationText})
+                            </span>
+                            ${isTop ? '<span class="text-[9px] bg-amber-500/20 text-amber-400 font-black px-1.5 py-0.5 rounded border border-amber-500/40">🔥 High Demand</span>' : ''}
                         </div>
-                        <span class="text-[10px] text-gray-400 font-medium">${p.members} Members</span>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                            <div>
+                                <span class="text-gray-400 block text-[9px] font-semibold">⏱️ DURATION</span>
+                                <span class="font-bold text-indigo-300">${durationText}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 block text-[9px] font-semibold">💰 PLAN FEE</span>
+                                <span class="font-bold text-emerald-400">${priceFormatted}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 block text-[9px] font-semibold">👥 ENROLLED</span>
+                                <span class="font-bold text-white">${p.members} Members (${p.percentage}%)</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400 block text-[9px] font-semibold">💵 TOTAL SALES</span>
+                                <span class="font-bold text-amber-300">${salesFormatted}</span>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-gray-300 pt-1.5 border-t border-gray-800 flex items-center gap-1 font-medium">
+                            <i class="fa-solid fa-chart-line text-emerald-400 text-[10px]"></i>
+                            ${isTop ? 'Highest converting plan in your gym.' : 'Active gym membership option.'}
+                        </div>
+                        <!-- Tooltip arrow -->
+                        <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-950/95"></div>
+                    </div>
+
+                    <!-- Card Header Row -->
+                    <div class="flex items-center justify-between mb-1.5 text-xs">
+                        <div class="flex items-center gap-2 min-w-0">
+                            ${rankBadge}
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="font-bold text-gray-900 truncate">${groupText}</span>
+                                <span class="text-[10px] font-extrabold text-[#5d5fef] bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100/80 shrink-0">${durationText}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0 pl-2">
+                            ${isTop ? '<span class="hidden sm:inline-flex bg-amber-50 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-200">🔥 High Demand</span>' : ''}
+                            <span class="font-black text-emerald-600 text-xs">${priceFormatted}</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar & Member Count -->
+                    <div class="flex items-center justify-between text-[10px] text-gray-400 font-medium mb-1">
+                        <span>${p.members} active member(s)</span>
+                        <span class="font-bold text-gray-600">${p.percentage}%</span>
                     </div>
                     <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-[#5d5fef] h-full rounded-full transition-all duration-700" style="width: ${p.percentage || 10}%"></div>
+                        <div class="${barGradient} h-full rounded-full transition-all duration-700" style="width: ${Math.max(p.percentage, 8)}%"></div>
                     </div>
                 </div>
             `;

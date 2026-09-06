@@ -10,13 +10,15 @@
             <p class="text-sm text-gray-500 mt-1 font-medium">Manage all your members and their subscriptions.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-            <!-- Filter 1: Membership Status -->
+            <!-- Filter 1: Membership Status & Expiry -->
             <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                 <i class="fa-solid fa-circle-dot text-indigo-500 text-xs"></i>
                 <select id="member-status-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                     <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="expired">Expired</option>
+                    <option value="active">Active Members</option>
+                    <option value="expired_month">Expired This Month</option>
+                    <option value="expired">All Expired Members</option>
+                    <option value="expiring">Expiring Soon (7 Days)</option>
                     <option value="inactive">Inactive</option>
                 </select>
             </div>
@@ -34,6 +36,26 @@
                 <i class="fa-solid fa-user-plus"></i> Add New Member
             </button>
         </div>
+    </div>
+
+    <!-- Active Filter Indicator Banner (Dynamic) -->
+    <div id="active-filter-banner" class="hidden p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl flex items-center justify-between shadow-2xs">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+                <i class="fa-solid fa-filter"></i>
+            </div>
+            <div>
+                <div class="text-xs font-extrabold text-gray-900 flex items-center gap-1.5">
+                    <span>Active Filter:</span>
+                    <span class="text-orange-700 bg-white/90 px-2 py-0.5 rounded-md border border-orange-200 text-xs font-black" id="filter-banner-label">Expired This Month</span>
+                </div>
+                <div class="text-[11px] text-gray-500 font-semibold mt-0.5" id="filter-banner-count">Showing matching members</div>
+            </div>
+        </div>
+        <button onclick="clearStatusFilter()" class="px-3 py-1.5 bg-white hover:bg-red-50 border border-amber-200 text-gray-700 hover:text-red-600 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5">
+            <span>Clear Filter</span>
+            <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
     </div>
 
     <!-- Data Table -->
@@ -629,6 +651,20 @@
     document.addEventListener('DOMContentLoaded', () => {
         // Set today as default joining date
         document.getElementById('joining_date').valueAsDate = new Date();
+        
+        // Read URL query parameter for filter (e.g. ?filter=expired_month or ?filter=expired or ?filter=expiring)
+        const urlParams = new URLSearchParams(window.location.search);
+        let urlFilter = urlParams.get('filter');
+        if (urlFilter) {
+            urlFilter = urlFilter.replace(/\/$/, '').toLowerCase(); // Clean trailing slash
+            const filterSelect = document.getElementById('member-status-filter');
+            if (filterSelect) {
+                if (urlFilter === 'expired' || urlFilter === 'expired_month' || urlFilter === 'expiring' || urlFilter === 'active' || urlFilter === 'inactive') {
+                    filterSelect.value = urlFilter;
+                }
+            }
+        }
+
         loadInitialData();
     });
 
@@ -734,6 +770,17 @@
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     }
 
+    // Clear Filter helper
+    function clearStatusFilter() {
+        const filterSelect = document.getElementById('member-status-filter');
+        if (filterSelect) filterSelect.value = 'all';
+        const planSelect = document.getElementById('member-plan-filter');
+        if (planSelect) planSelect.value = 'all';
+        // Clean URL query param without refreshing
+        window.history.replaceState({}, document.title, window.location.pathname);
+        renderTable();
+    }
+
     // ---- DataTable Rendering ----
     function renderTable() {
         if (dataTable) {
@@ -744,10 +791,52 @@
         const planFilter = document.getElementById('member-plan-filter')?.value || 'all';
 
         const filteredMembers = membersData.filter(member => {
-            if (statusFilter !== 'all' && member.status !== statusFilter) return false;
+            const isExpiredThisMonth = !!member.is_expired_this_month;
+            const isExpiringSoon = !!member.is_expiring_soon;
+            const isExpired = !!member.is_expired || member.status === 'expired' || member.dynamic_status === 'expired';
+            const isActive = !isExpired && (member.status === 'active' || member.dynamic_status === 'active');
+
+            if (statusFilter === 'expired_month') {
+                if (!isExpiredThisMonth) return false;
+            } else if (statusFilter === 'expired') {
+                if (!isExpired) return false;
+            } else if (statusFilter === 'expiring') {
+                if (!isExpiringSoon) return false;
+            } else if (statusFilter === 'active') {
+                if (!isActive) return false;
+            } else if (statusFilter === 'inactive') {
+                if (member.status !== 'inactive') return false;
+            }
+
             if (planFilter !== 'all' && String(member.plan_id) !== String(planFilter)) return false;
             return true;
         });
+
+        // Update Active Filter Banner
+        const banner = document.getElementById('active-filter-banner');
+        const bannerLabel = document.getElementById('filter-banner-label');
+        const bannerCount = document.getElementById('filter-banner-count');
+        if (banner && bannerLabel && bannerCount) {
+            if (statusFilter !== 'all' || planFilter !== 'all') {
+                banner.classList.remove('hidden');
+                let filterName = 'Custom Filter';
+                if (statusFilter === 'expired_month') filterName = 'Expired This Month';
+                else if (statusFilter === 'expired') filterName = 'All Expired Members';
+                else if (statusFilter === 'expiring') filterName = 'Expiring Soon (Next 7 Days)';
+                else if (statusFilter === 'active') filterName = 'Active Members Only';
+                else if (statusFilter === 'inactive') filterName = 'Inactive Members';
+
+                if (planFilter !== 'all') {
+                    const planObj = plansData.find(p => String(p.id) === String(planFilter));
+                    if (planObj) filterName += ` • Plan: ${planObj.display_name}`;
+                }
+                
+                bannerLabel.textContent = filterName;
+                bannerCount.textContent = `Showing ${filteredMembers.length} member(s) matching filter`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
 
         const tbody = document.getElementById('members-tbody');
         let html = '';
@@ -757,15 +846,26 @@
             const plan = member.plan || {};
             const batch = member.batch || null;
             
-            const statusClass = member.status === 'active' ? 'bg-green-100 text-green-700' : 
-                               (member.status === 'expired' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700');
+            let statusClass = 'bg-green-100 text-green-700';
+            let statusText = 'ACTIVE';
+
+            if (member.status === 'inactive') {
+                statusClass = 'bg-gray-100 text-gray-700';
+                statusText = 'INACTIVE';
+            } else if (member.status === 'expired') {
+                statusClass = 'bg-red-100 text-red-700';
+                statusText = 'EXPIRED';
+            } else {
+                statusClass = 'bg-green-100 text-green-700';
+                statusText = 'ACTIVE';
+            }
             
             const photoUrl = user.photo ? `/${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=f3f4f6&color=6b7280`;
 
             const planDisplay = plan && plan.plan_group_name ? `<div class="font-bold text-gray-800">${plan.plan_group_name} - ${plan.duration_months}M</div>` : '<div class="text-gray-400 text-sm">No Plan</div>';
             const batchDisplay = batch ? `<div class="text-[11px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded border border-purple-100"><i class="fa-solid fa-layer-group"></i> ${batch.name}</div>` : '';
-            
-            const joiningDate = new Date(member.joining_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            const renewBtnStyle = 'w-10 h-10 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition shadow-sm cursor-pointer';
 
             html += `
                 <tr>
@@ -787,23 +887,22 @@
                         ${batchDisplay}
                     </td>
                     <td>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusClass}">
-                            ${member.status}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                            ${statusText}
                         </span>
-                        <div class="text-[10px] text-gray-400 mt-1.5 font-medium">Joined: ${joiningDate}</div>
                     </td>
                     <td class="text-center">
                         <div class="flex justify-center gap-2">
-                            <button onclick='openRenewModal(${member.id})' class="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Renew / Extend Plan">
+                            <button onclick='openRenewModal(${member.id})' class="${renewBtnStyle}" title="Renew / Extend Plan">
                                 <i class="fa-solid fa-arrows-rotate text-sm"></i>
                             </button>
-                            <button onclick='viewMember(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition shadow-sm" title="View Details">
+                            <button onclick='viewMember(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="View Details">
                                 <i class="fa-solid fa-eye text-sm"></i>
                             </button>
-                            <button onclick='openEditWizard(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition shadow-sm" title="Edit">
+                            <button onclick='openEditWizard(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Edit">
                                 <i class="fa-solid fa-pen text-sm"></i>
                             </button>
-                            <button onclick='deleteMember(${member.id})' class="w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition shadow-sm" title="Delete">
+                            <button onclick='deleteMember(${member.id})' class="w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Delete">
                                 <i class="fa-solid fa-trash-can text-sm"></i>
                             </button>
                         </div>
@@ -897,7 +996,19 @@
             expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
             const startStr = startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            document.getElementById('view-card-validity').textContent = `${startStr} – ${expiryStr}`;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const isExp = today > expiryDate;
+            const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+
+            if (isExp) {
+                document.getElementById('view-card-validity').innerHTML = `${startStr} – ${expiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-700 uppercase">Expired</span>`;
+            } else if (diffDays <= 7) {
+                document.getElementById('view-card-validity').innerHTML = `${startStr} – ${expiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 uppercase">Expires in ${diffDays}d</span>`;
+            } else {
+                document.getElementById('view-card-validity').innerHTML = `${startStr} – ${expiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase">Active</span>`;
+            }
         } else {
             document.getElementById('view-card-validity').textContent = 'No validity set';
         }

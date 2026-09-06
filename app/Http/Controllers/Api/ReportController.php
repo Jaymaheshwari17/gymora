@@ -61,21 +61,36 @@ class ReportController extends Controller
                 break;
         }
 
-        // Fetch Data
+        // Fetch Data using business dates (payment_date and joining_date)
+        $startDateStr = $startDate->format('Y-m-d');
+        $endDateStr = $endDate->format('Y-m-d');
+
         $payments = Payment::with('member.plan')->where('gym_id', $gymId)
-            ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->where(function ($q) use ($startDateStr, $endDateStr, $startDate, $endDate) {
+                $q->whereBetween('payment_date', [$startDateStr, $endDateStr])
+                  ->orWhere(function ($sub) use ($startDate, $endDate) {
+                      $sub->whereNull('payment_date')
+                          ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+                  });
+            })
             ->get();
             
         $members = Member::where('gym_id', $gymId)
-            ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->where(function ($q) use ($startDateStr, $endDateStr, $startDate, $endDate) {
+                $q->whereBetween('joining_date', [$startDateStr, $endDateStr])
+                  ->orWhere(function ($sub) use ($startDate, $endDate) {
+                      $sub->whereNull('joining_date')
+                          ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+                  });
+            })
             ->get();
             
         $expenses = Expense::where('gym_id', $gymId)
-            ->whereBetween('expense_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereBetween('expense_date', [$startDateStr, $endDateStr])
             ->get();
             
         $attendances = Attendance::where('gym_id', $gymId)
-            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->whereBetween('date', [$startDateStr, $endDateStr])
             ->get();
 
         // 1. Top Stats
@@ -116,26 +131,24 @@ class ReportController extends Controller
             }
         }
 
-        // Fill Time-series
+        // Fill Time-series using actual payment_date and joining_date
         foreach ($payments as $p) {
-            $date = Carbon::parse($p->created_at)->timezone($timezone);
-            $key = ($range === 'week' || $range === 'month') ? $date->format('Y-m-d') : $date->format('Y-m');
+            $pDate = $p->payment_date ? Carbon::parse($p->payment_date) : Carbon::parse($p->created_at)->timezone($timezone);
+            $key = ($range === 'week' || $range === 'month') ? $pDate->format('Y-m-d') : $pDate->format('Y-m');
             
             if (isset($timeseries[$key])) {
                 $timeseries[$key]['collected'] += (float)$p->paid_amount;
                 $timeseries[$key]['total_sales'] += (float)$p->total_amount;
-                // Assuming all sales are plan sales for now, no other sales.
                 $timeseries[$key]['plan_sales'] += (float)$p->total_amount;
                 $timeseries[$key]['other_sales'] += 0; 
-                // Mock refunds to 0
                 $timeseries[$key]['refunds'] += 0;
                 $timeseries[$key]['net_payments'] += (float)$p->paid_amount;
             }
         }
         
         foreach ($members as $m) {
-            $date = Carbon::parse($m->created_at)->timezone($timezone);
-            $key = ($range === 'week' || $range === 'month') ? $date->format('Y-m-d') : $date->format('Y-m');
+            $mDate = $m->joining_date ? Carbon::parse($m->joining_date) : Carbon::parse($m->created_at)->timezone($timezone);
+            $key = ($range === 'week' || $range === 'month') ? $mDate->format('Y-m-d') : $mDate->format('Y-m');
             if (isset($timeseries[$key])) {
                 $timeseries[$key]['new_members']++;
             }

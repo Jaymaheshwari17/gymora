@@ -157,7 +157,11 @@ class SettingsController extends Controller
             if ($request->hasFile('logo')) {
                 $file = $request->file('logo');
                 $filename = 'gym_' . $gym->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('uploads/gyms'), $filename);
+                $dir = public_path('uploads/gyms');
+                if (!file_exists($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+                $file->move($dir, $filename);
                 $gym->logo = 'uploads/gyms/' . $filename;
             }
 
@@ -176,7 +180,7 @@ class SettingsController extends Controller
 
         } catch (Exception $e) {
             Log::error('SettingsController@updateGymProfile: ' . $e->getMessage());
-            return $this->errorResponse('Failed to update gym profile', [], 500);
+            return $this->errorResponse('Failed to update gym profile: ' . $e->getMessage(), [], 500);
         }
     }
 

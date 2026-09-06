@@ -85,10 +85,53 @@ class DashboardController extends Controller
                 $dueThisPeriod = Payment::where('gym_id', $gymId)->where('due_amount', '>', 0)->distinct('member_id')->count('member_id');
             }
 
-            $membersGrowth = 12;
-            $activeGrowth = 8;
+            // Staff & Trainers count
+            $activeTrainersCount = User::where('gym_id', $gymId)->where('role', 'trainer')->where('status', 'active')->count();
+            $activeStaffCount = User::where('gym_id', $gymId)->where('role', 'staff')->where('status', 'active')->count();
+            $totalStaffTrainers = User::where('gym_id', $gymId)->whereIn('role', ['staff', 'trainer'])->where('status', 'active')->count();
+
+            // Dynamic Month-over-Month Growth using joining_date and payment_date
+            $lastM = now()->subMonth();
+            $thisM = now();
+
+            $lastMonthMembers = Member::where('gym_id', $gymId)
+                ->where(function ($q) use ($lastM) {
+                    $q->whereMonth('joining_date', $lastM->month)->whereYear('joining_date', $lastM->year)
+                      ->orWhere(function ($sub) use ($lastM) {
+                          $sub->whereNull('joining_date')->whereMonth('created_at', $lastM->month)->whereYear('created_at', $lastM->year);
+                      });
+                })->count();
+
+            $thisMonthMembers = Member::where('gym_id', $gymId)
+                ->where(function ($q) use ($thisM) {
+                    $q->whereMonth('joining_date', $thisM->month)->whereYear('joining_date', $thisM->year)
+                      ->orWhere(function ($sub) use ($thisM) {
+                          $sub->whereNull('joining_date')->whereMonth('created_at', $thisM->month)->whereYear('created_at', $thisM->year);
+                      });
+                })->count();
+
+            $membersGrowth = $lastMonthMembers > 0 ? round((($thisMonthMembers - $lastMonthMembers) / $lastMonthMembers) * 100) : ($thisMonthMembers > 0 ? 100 : 0);
+
+            $lastMonthCollected = (float) Payment::where('gym_id', $gymId)
+                ->where(function ($q) use ($lastM) {
+                    $q->whereMonth('payment_date', $lastM->month)->whereYear('payment_date', $lastM->year)
+                      ->orWhere(function ($sub) use ($lastM) {
+                          $sub->whereNull('payment_date')->whereMonth('created_at', $lastM->month)->whereYear('created_at', $lastM->year);
+                      });
+                })->sum('paid_amount');
+
+            $thisMonthCollected = (float) Payment::where('gym_id', $gymId)
+                ->where(function ($q) use ($thisM) {
+                    $q->whereMonth('payment_date', $thisM->month)->whereYear('payment_date', $thisM->year)
+                      ->orWhere(function ($sub) use ($thisM) {
+                          $sub->whereNull('payment_date')->whereMonth('created_at', $thisM->month)->whereYear('created_at', $thisM->year);
+                      });
+                })->sum('paid_amount');
+
+            $collectedGrowth = $lastMonthCollected > 0 ? round((($thisMonthCollected - $lastMonthCollected) / $lastMonthCollected) * 100) : ($thisMonthCollected > 0 ? 100 : 0);
+
+            $activeGrowth = $totalMembers > 0 ? round(($activeMembers / $totalMembers) * 100) : 0;
             $pendingGrowth = 0;
-            $collectedGrowth = 18;
 
             // 2. 7-Day Sparkline Trend Points for Each Card
             $sparklineDays = [];
@@ -141,14 +184,9 @@ class DashboardController extends Controller
             $absentMarked = Attendance::where('gym_id', $gymId)->whereDate('date', today())->where('status', 'A')->count();
             $totalAttendanceMarked = Attendance::where('gym_id', $gymId)->whereDate('date', today())->count();
 
-            if ($totalAttendanceMarked > 0) {
-                $totalAttendanceToday = $totalAttendanceMarked;
-                $absentToday = $absentMarked;
-            } else {
-                $totalAttendanceToday = $activeMembers > 0 ? $activeMembers : 1;
-                $absentToday = max(0, $totalAttendanceToday - $presentToday);
-            }
-            $attendancePercentage = $totalAttendanceToday > 0 ? round(($presentToday / $totalAttendanceToday) * 100) : 0;
+            $totalEligibleMembers = $activeMembers > 0 ? $activeMembers : $totalMembers;
+            $attendancePercentage = $totalEligibleMembers > 0 ? round(($presentToday / $totalEligibleMembers) * 100) : 0;
+            $absentToday = max(0, $totalEligibleMembers - $presentToday);
 
             // 5. Monthly Overview (Last 6 Months)
             $months = [];
@@ -163,8 +201,21 @@ class DashboardController extends Controller
                 $y = $monthDate->year;
                 $months[] = $monthKey;
 
-                $mCollected = (float) Payment::where('gym_id', $gymId)->whereMonth('created_at', $m)->whereYear('created_at', $y)->sum('paid_amount');
-                $mPending = (float) Payment::where('gym_id', $gymId)->whereMonth('created_at', $m)->whereYear('created_at', $y)->sum('due_amount');
+                $mCollected = (float) Payment::where('gym_id', $gymId)
+                    ->where(function ($q) use ($m, $y) {
+                        $q->whereMonth('payment_date', $m)->whereYear('payment_date', $y)
+                          ->orWhere(function ($sub) use ($m, $y) {
+                              $sub->whereNull('payment_date')->whereMonth('created_at', $m)->whereYear('created_at', $y);
+                          });
+                    })->sum('paid_amount');
+
+                $mPending = (float) Payment::where('gym_id', $gymId)
+                    ->where(function ($q) use ($m, $y) {
+                        $q->whereMonth('payment_date', $m)->whereYear('payment_date', $y)
+                          ->orWhere(function ($sub) use ($m, $y) {
+                              $sub->whereNull('payment_date')->whereMonth('created_at', $m)->whereYear('created_at', $y);
+                          });
+                    })->sum('due_amount');
                 $mExpense = (float) \App\Models\Expense::where('gym_id', $gymId)->whereMonth('expense_date', $m)->whereYear('expense_date', $y)->sum('amount');
 
                 $collectionData[] = $mCollected;
@@ -172,26 +223,57 @@ class DashboardController extends Controller
                 $expenseData[] = $mExpense;
             }
 
-            // 6. Top Plans (100% Dynamic)
+            // 6. Top Plans (100% Dynamic with Duration, Pricing, and Demand Insights)
             $plans = \App\Models\Plan::where('gym_id', $gymId)->get();
             $topPlansList = [];
             foreach ($plans as $plan) {
                 $mCount = Member::where('gym_id', $gymId)->where('plan_id', $plan->id)->count();
+                $totalSalesFromPlan = (float) Payment::where('gym_id', $gymId)
+                    ->whereHas('member', function($q) use ($plan) {
+                        $q->where('plan_id', $plan->id);
+                    })->sum('paid_amount');
+
+                $durationMonths = (int) $plan->duration_months;
+                if ($durationMonths === 1) {
+                    $durationLabel = '1 Month';
+                } elseif ($durationMonths === 12) {
+                    $durationLabel = '1 Year (12 Mo)';
+                } else {
+                    $durationLabel = "{$durationMonths} Months";
+                }
+
+                $formattedAmount = '₹' . number_format((float)$plan->amount, 0);
+                $groupName = ucfirst($plan->plan_group_name);
+                $fullLabel = "{$groupName} • {$durationLabel}";
+
                 $topPlansList[] = [
                     'id' => $plan->id,
-                    'name' => $plan->plan_group_name,
+                    'name' => $fullLabel,
+                    'group_name' => $groupName,
+                    'duration_months' => $durationMonths,
+                    'duration_label' => $durationLabel,
+                    'amount' => (float)$plan->amount,
+                    'formatted_amount' => $formattedAmount,
                     'members' => $mCount,
-                    'percentage' => $totalMembers > 0 ? round(($mCount / $totalMembers) * 100) : 0
+                    'percentage' => $totalMembers > 0 ? round(($mCount / $totalMembers) * 100) : 0,
+                    'total_sales' => $totalSalesFromPlan,
+                    'formatted_sales' => '₹' . number_format($totalSalesFromPlan, 0)
                 ];
             }
             usort($topPlansList, function($a, $b) { return $b['members'] <=> $a['members']; });
-            $topPlansList = array_slice($topPlansList, 0, 3);
+            $topPlansList = array_slice($topPlansList, 0, 4);
 
-            // 7. Recent Activities (100% Dynamic)
+            foreach ($topPlansList as $idx => &$tp) {
+                $tp['rank'] = $idx + 1;
+                $tp['is_highest_demand'] = ($idx === 0 && $tp['members'] > 0);
+            }
+            unset($tp);
+
+            // 7. Recent Activities & Lists (100% Dynamic)
             $recentActivities = [];
             
             // Recent members
-            $recentJoined = Member::with('user')->where('gym_id', $gymId)->orderBy('created_at', 'desc')->take(3)->get();
+            $recentJoined = Member::with('user')->where('gym_id', $gymId)->orderBy('created_at', 'desc')->take(5)->get();
             foreach ($recentJoined as $rm) {
                 $recentActivities[] = [
                     'type' => 'member',
@@ -236,6 +318,15 @@ class DashboardController extends Controller
                 ];
             }
 
+            // Upcoming Birthdays list
+            $upcomingBirthdaysList = User::where('gym_id', $gymId)
+                ->where('role', 'member')
+                ->whereNotNull('dob')
+                ->whereRaw("DATE_FORMAT(dob, '%m-%d') >= DATE_FORMAT(NOW(), '%m-%d')")
+                ->orderByRaw("DATE_FORMAT(dob, '%m-%d') ASC")
+                ->take(5)
+                ->get(['id', 'name', 'photo', 'dob', 'mobile']);
+
             // Expiring or Due Members for quick action reminder table & hover tooltips
             $dueAndExpiring = [];
             $pendingPayments = Payment::with(['member.user', 'member.plan'])
@@ -266,12 +357,15 @@ class DashboardController extends Controller
                 'top_stats' => [
                     'total_members' => $totalMembers,
                     'active_members' => $activeMembers,
+                    'total_trainers' => $activeTrainersCount,
+                    'total_staff' => $activeStaffCount,
+                    'total_staff_trainers' => $totalStaffTrainers,
                     'pending_fees' => $pendingFees,
                     'collected_fees' => $collectedFees,
-                    'members_growth' => $membersGrowth >= 0 ? "+$membersGrowth" : "$membersGrowth",
-                    'active_growth' => $activeGrowth >= 0 ? "+$activeGrowth" : "$activeGrowth",
-                    'pending_growth' => $pendingGrowth >= 0 ? "+$pendingGrowth" : "$pendingGrowth",
-                    'collected_growth' => $collectedGrowth >= 0 ? "+$collectedGrowth" : "$collectedGrowth",
+                    'members_growth' => $membersGrowth >= 0 ? "+$membersGrowth%" : "$membersGrowth%",
+                    'active_growth' => $activeGrowth >= 0 ? "+$activeGrowth%" : "$activeGrowth%",
+                    'pending_growth' => $pendingGrowth >= 0 ? "+$pendingGrowth%" : "$pendingGrowth%",
+                    'collected_growth' => $collectedGrowth >= 0 ? "+$collectedGrowth%" : "$collectedGrowth%",
                     'sparklines' => [
                         'members' => $membersSparkline,
                         'active' => $activeSparkline,
@@ -285,10 +379,21 @@ class DashboardController extends Controller
                     'due_month' => $dueThisMonth,
                     'new_members' => $newMembersThisMonth
                 ],
+                'chips' => [
+                    'new_members' => $newMembersThisMonth,
+                    'new_trainers' => $totalStaffTrainers,
+                    'total_trainers' => $activeTrainersCount,
+                    'total_staff' => $activeStaffCount,
+                    'attendance_rate' => $attendancePercentage,
+                ],
+                'lists' => [
+                    'recent_members' => $recentJoined,
+                    'upcoming_birthdays' => $upcomingBirthdaysList
+                ],
                 'attendance_today' => [
                     'present' => $presentToday,
                     'absent' => $absentToday,
-                    'total' => $totalAttendanceToday,
+                    'total' => $totalEligibleMembers,
                     'percentage' => $attendancePercentage
                 ],
                 'monthly_overview' => [

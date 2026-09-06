@@ -93,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Settings Routes
     Route::put('/settings/profile', [\App\Http\Controllers\Api\SettingsController::class, 'updateProfile']);
+    Route::post('/settings/profile', [\App\Http\Controllers\Api\SettingsController::class, 'updateProfile']);
     Route::put('/settings/change-password', [\App\Http\Controllers\Api\SettingsController::class, 'changePassword']);
     
     // Diet Plans Routes

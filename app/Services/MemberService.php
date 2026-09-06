@@ -27,7 +27,41 @@ class MemberService
                 $query->where('trainer_id', $trainerId);
             }
             
-            return $query->latest()->get();
+            $members = $query->latest()->get();
+            $now = now();
+            $sevenDaysFromNow = now()->addDays(7);
+            $startOfMonth = now()->startOfMonth();
+
+            foreach ($members as $m) {
+                $plan = $m->plan;
+                $duration = $plan ? (int)$plan->duration_months : 0;
+                $joiningDate = $m->joining_date ? \Carbon\Carbon::parse($m->joining_date) : null;
+                $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+
+                $isExpired = $expiryDate ? $expiryDate->isPast() : false;
+                $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $sevenDaysFromNow)) : false;
+                $isExpiredThisMonth = $expiryDate ? ($expiryDate->isPast() && $expiryDate->between($startOfMonth, $now)) : false;
+                $daysRemaining = $expiryDate ? (int) $now->diffInDays($expiryDate, false) : 0;
+
+                $m->expiry_date = $expiryDate ? $expiryDate->format('Y-m-d') : null;
+                $m->formatted_expiry_date = $expiryDate ? $expiryDate->format('d M Y') : 'No Expiry';
+                $m->is_expired = $isExpired;
+                $m->is_expiring_soon = $isExpiringSoon;
+                $m->is_expired_this_month = $isExpiredThisMonth;
+                $m->days_remaining = $daysRemaining;
+
+                if ($m->status === 'inactive') {
+                    $m->dynamic_status = 'inactive';
+                } elseif ($isExpired) {
+                    $m->dynamic_status = 'expired';
+                } elseif ($isExpiringSoon) {
+                    $m->dynamic_status = 'expiring';
+                } else {
+                    $m->dynamic_status = 'active';
+                }
+            }
+
+            return $members;
         } catch (Exception $e) {
             Log::error('MemberService@getMembers Error: ' . $e->getMessage());
             throw $e;
