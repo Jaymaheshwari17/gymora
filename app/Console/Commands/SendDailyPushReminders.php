@@ -124,7 +124,26 @@ class SendDailyPushReminders extends Command
                             ];
                         }
                     }
-                    // B) Expiring in 3 Days
+                    // B) Expiring in 7 Days (1 Week in Advance)
+                    elseif ($endDate->copy()->subDays(7)->isSameDay($today)) {
+                        $expiryCount++;
+                        $title = '🔔 Plan Expiring in 7 Days';
+                        $body = "Hi {$member->user->name}, your gym membership at {$gymName} will expire in 7 days (on {$endDate->format('d M')}). Renew early to stay fit without breaks!";
+
+                        $this->saveInAppNotification($member->user->id, $title, $body, ['type' => 'plan_expiry_7_days']);
+                        $this->line("  ✓ Plan Expiring in 7 Days: {$member->user->name}");
+
+                        if ($token) {
+                            $notificationsToSend[] = [
+                                'to' => $token,
+                                'title' => $title,
+                                'body' => $body,
+                                'sound' => 'default',
+                                'data' => ['type' => 'plan_expiry_7_days'],
+                            ];
+                        }
+                    }
+                    // C) Expiring in 3 Days
                     elseif ($endDate->copy()->subDays(3)->isSameDay($today)) {
                         $expiryCount++;
                         $title = '⚠️ Plan Expiring in 3 Days';

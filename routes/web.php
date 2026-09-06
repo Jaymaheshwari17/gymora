@@ -61,3 +61,31 @@ Route::get('/payments', function () {
 Route::get('/expenses', function () {
     return view('expenses');
 });
+
+// =========================================================================
+// SUPER ADMIN (PLATFORM / SAAS LEVEL) DEDICATED WEB VIEWS
+// =========================================================================
+Route::prefix('admin')->group(function () {
+    Route::get('/', function () {
+        return redirect('/admin/dashboard');
+    });
+    Route::get('/login', function () {
+        return view('superadmin.login');
+    });
+    Route::get('/dashboard', function () {
+        return view('superadmin.dashboard');
+    });
+    Route::get('/gyms', function () {
+        return view('superadmin.gyms');
+    });
+    Route::get('/expenses', function () {
+        return view('superadmin.expenses');
+    });
+    Route::get('/reports', function () {
+        return view('superadmin.reports');
+    });
+    Route::get('/settings', function () {
+        return view('superadmin.settings');
+    });
+});
+

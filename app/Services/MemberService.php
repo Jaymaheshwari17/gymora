@@ -225,32 +225,62 @@ class MemberService
             $paidAmount = isset($data['amount_received']) ? (float)$data['amount_received'] : 0;
 
             if ($actionType === 'upgrade') {
-                // 🔁 PLAN CHANGE / SWITCH (Directly updates current plan & replaces previous payment with new plan fee)
-                $dueAmount = max(0, $totalAmount - $paidAmount);
-                $paymentStatus = $dueAmount <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'pending');
-
+                // 🔁 PLAN CHANGE / UPGRADE (Adjusts previous payment & accounts for partial difference)
                 $recentPayment = Payment::where('member_id', $member->id)
                     ->where('gym_id', $gymId)
-                    ->latest()
+                    ->latest('id')
                     ->first();
 
+                $previousPaid = $recentPayment ? (float)$recentPayment->paid_amount : 0;
+                $payingNow = isset($data['amount_received']) ? (float)$data['amount_received'] : 0;
+                
+                // Total cumulative paid for this plan = already paid + paying now
+                $totalPaidCumulative = min($totalAmount, $previousPaid + $payingNow);
+                $dueAmount = max(0, $totalAmount - $totalPaidCumulative);
+                $paymentStatus = $dueAmount <= 0 ? 'paid' : ($totalPaidCumulative > 0 ? 'partial' : 'pending');
+
                 if ($recentPayment) {
+                    // Backfill initial transaction if missing
+                    if ($previousPaid > 0 && $recentPayment->transactions()->count() === 0) {
+                        PaymentTransaction::create([
+                            'payment_id' => $recentPayment->id,
+                            'member_id' => $member->id,
+                            'gym_id' => $gymId,
+                            'amount' => $previousPaid,
+                            'payment_date' => $recentPayment->payment_date ?: ($recentPayment->created_at ? $recentPayment->created_at->toDateString() : now()->toDateString()),
+                            'payment_mode' => 'cash',
+                            'notes' => 'Initial plan payment'
+                        ]);
+                    }
+
                     $recentPayment->update([
                         'total_amount' => $totalAmount,
-                        'paid_amount' => $paidAmount,
+                        'paid_amount' => $totalPaidCumulative,
                         'due_amount' => $dueAmount,
-                        'payment_date' => $paidAmount > 0 ? now()->toDateString() : null,
+                        'payment_date' => now()->toDateString(),
                         'status' => $paymentStatus,
                     ]);
                 } else {
-                    Payment::create([
+                    $recentPayment = Payment::create([
                         'member_id' => $member->id,
                         'gym_id' => $gymId,
                         'total_amount' => $totalAmount,
-                        'paid_amount' => $paidAmount,
+                        'paid_amount' => $totalPaidCumulative,
                         'due_amount' => $dueAmount,
-                        'payment_date' => $paidAmount > 0 ? now()->toDateString() : null,
+                        'payment_date' => now()->toDateString(),
                         'status' => $paymentStatus,
+                    ]);
+                }
+
+                if ($payingNow > 0) {
+                    PaymentTransaction::create([
+                        'payment_id' => $recentPayment->id,
+                        'member_id' => $member->id,
+                        'gym_id' => $gymId,
+                        'amount' => $payingNow,
+                        'payment_date' => now()->toDateString(),
+                        'payment_mode' => $data['payment_mode'] ?? 'cash',
+                        'notes' => 'Plan Upgrade difference payment',
                     ]);
                 }
 

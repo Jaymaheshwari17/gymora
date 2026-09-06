@@ -144,17 +144,21 @@
                     </div>
 
                     <!-- Financial Breakdown Box -->
-                    <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1.5" id="fee-adjustment-box">
+                    <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-2" id="fee-adjustment-box">
                         <div class="flex justify-between text-gray-600">
                             <span>New Plan Price:</span>
                             <span class="font-bold text-gray-900">₹<span id="calc-new-price">0</span></span>
+                        </div>
+                        <div class="flex justify-between text-rose-500 font-semibold hidden" id="row-discount-preview">
+                            <span>Discount Applied:</span>
+                            <span>-₹<span id="calc-discount-preview">0</span></span>
                         </div>
                         <div class="flex justify-between text-emerald-600 font-semibold" id="row-prev-adjusted">
                             <span>Adjusted (Already Paid):</span>
                             <span>-₹<span id="calc-prev-adjusted">0</span></span>
                         </div>
                         <div class="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1.5">
-                            <span id="label-diff-collect">Difference to Collect:</span>
+                            <span id="label-diff-collect">Difference to Collect (Adjusted):</span>
                             <span class="text-indigo-600 font-black text-sm">₹<span id="calc-net-diff">0</span></span>
                         </div>
                     </div>
@@ -163,14 +167,23 @@
                         <!-- Discount -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Discount (₹)</label>
-                            <input type="number" id="renew_discount" min="0" value="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-bold" oninput="calculateRenewAmounts()">
+                            <input type="number" id="renew_discount" min="0" value="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-bold" oninput="calculateRenewAmounts(false)">
                         </div>
                         
                         <!-- Paid Amount -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Amount Paid Now (₹) <span class="text-red-500">*</span></label>
-                            <input type="number" id="renew_paid" required min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-black text-emerald-600">
+                            <input type="number" id="renew_paid" required min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-black text-emerald-600" oninput="calculateDueLive()">
                         </div>
+                    </div>
+
+                    <!-- Live Remaining Due Status Box -->
+                    <div id="renew-due-status-box" class="p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800">
+                        <span class="flex items-center gap-1.5 font-bold" id="renew-due-status-left">
+                            <i id="renew-due-status-icon" class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span id="renew-due-status-label">Full Payment</span>
+                        </span>
+                        <span class="font-black text-xs sm:text-sm" id="renew-due-status-amount">Remaining Due: ₹0</span>
                     </div>
                 </div>
             </form>
@@ -443,87 +456,160 @@
 </div>
 
 <!-- View Member Card Modal -->
-<div id="view-member-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4">
+<div id="view-member-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 sm:p-6">
     <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeViewModal()"></div>
-    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 w-full max-w-md flex flex-col transform transition-all">
-        <!-- Close btn -->
-        <button onclick="closeViewModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 text-white hover:bg-black/40 flex items-center justify-center transition z-20 backdrop-blur-md">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-
-        <!-- Header Banner -->
-        <div id="view-card-banner" class="h-32 bg-gradient-to-r from-green-400 to-green-600 relative transition-colors duration-300">
-            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-            <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
-                <img id="view-card-photo" src="" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg bg-white">
-            </div>
-            <div class="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                <i class="fa-solid fa-id-card"></i> <span id="view-card-id">MEM-0001</span>
-            </div>
-            <div class="absolute bottom-4 right-4">
-                <span id="view-card-status" class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white shadow-sm text-green-600 transition-colors duration-300">Active</span>
-            </div>
-        </div>
-
-        <div class="pt-14 pb-6 px-6 flex flex-col items-center text-center">
-            <h3 id="view-card-name" class="text-2xl font-black text-gray-900 leading-tight">Name</h3>
-            <div class="flex items-center gap-3 text-sm font-medium text-gray-500 mt-2">
-                <div class="flex items-center gap-1"><i class="fa-solid fa-phone text-gray-400 text-xs"></i> <span id="view-card-mobile">Mobile</span></div>
-                <span class="text-gray-300">&bull;</span>
-                <div class="flex items-center gap-1"><i class="fa-solid fa-envelope text-gray-400 text-xs"></i> <span id="view-card-email">Email</span></div>
-            </div>
-            <div class="flex items-center justify-center gap-4 text-xs font-semibold text-gray-400 mt-3 border-t border-gray-100 pt-3 w-full">
-                <div class="flex items-center gap-1.5"><i class="fa-solid fa-venus-mars text-indigo-600/50"></i> <span id="view-card-gender" class="capitalize">N/A</span></div>
-                <div class="w-1 h-1 rounded-full bg-gray-300"></div>
-                <div class="flex items-center gap-1.5"><i class="fa-solid fa-cake-candles text-indigo-600/50"></i> <span id="view-card-dob">N/A</span></div>
-            </div>
-        </div>
+    
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 w-full max-w-4xl flex flex-col max-h-[92vh] transform transition-all border border-gray-100">
         
-        <div class="bg-gray-50 p-6 space-y-4 border-t border-gray-100">
-            <!-- Membership Info -->
-            <div>
-                <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Membership Details</h4>
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
-                    <div class="flex justify-between items-center text-xs sm:text-sm">
-                        <span class="text-gray-500 font-medium"><i class="fa-solid fa-star text-yellow-400 w-4 text-center mr-1.5"></i> Active Plan</span>
-                        <span id="view-card-plan" class="font-bold text-gray-900">N/A</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs sm:text-sm">
-                        <span class="text-gray-500 font-medium"><i class="fa-solid fa-calendar-days text-indigo-400 w-4 text-center mr-1.5"></i> Plan Validity</span>
-                        <span id="view-card-validity" class="font-bold text-indigo-700">N/A</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs sm:text-sm">
-                        <span class="text-gray-500 font-medium"><i class="fa-solid fa-clock-rotate-left text-blue-400 w-4 text-center mr-1.5"></i> Joined Gym</span>
-                        <span id="view-card-joined" class="font-bold text-gray-900">N/A</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs sm:text-sm">
-                        <span class="text-gray-500 font-medium"><i class="fa-solid fa-coins text-emerald-400 w-4 text-center mr-1.5"></i> Lifetime Paid</span>
-                        <span class="font-bold text-green-600">₹<span id="view-card-paid">0</span></span>
-                    </div>
+        <!-- Header Strip -->
+        <div id="view-card-banner" class="px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex items-center justify-between relative transition-colors duration-300 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-bold text-sm">
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div>
+                    <span id="view-card-id" class="font-black text-sm tracking-wide">MEM-0001</span>
+                    <span class="text-white/80 text-xs ml-2 font-medium">Member Profile & Plan Overview</span>
                 </div>
             </div>
             
-            <!-- Assignments -->
-            <div>
-                <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Assignments</h4>
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4 text-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-users"></i></div>
-                        <div class="flex-1">
-                            <div class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Batch</div>
-                            <div id="view-card-batch" class="font-bold text-gray-900 leading-tight">N/A</div>
+            <div class="flex items-center gap-3">
+                <span id="view-card-status" class="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white shadow-sm text-emerald-600">Active</span>
+                <button onclick="closeViewModal()" class="w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 text-white flex items-center justify-center transition backdrop-blur-md cursor-pointer">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Card Body (2 Columns Layout) -->
+        <div class="p-6 md:p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-12 gap-6 bg-[#f8f9fc]">
+            
+            <!-- Left Column: Member Profile & Contacts (5 cols) -->
+            <div class="md:col-span-5 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center text-center justify-between">
+                <div class="w-full flex flex-col items-center">
+                    <!-- Photo / Avatar -->
+                    <div class="relative mb-3">
+                        <img id="view-card-photo" src="" class="w-24 h-24 rounded-2xl object-cover border-4 border-indigo-50 shadow-md bg-white">
+                        <div id="view-card-photo-badge" class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px]" title="Active Member">
+                            <i class="fa-solid fa-check"></i>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-dumbbell"></i></div>
-                        <div class="flex-1">
-                            <div class="text-xs text-gray-400 font-medium uppercase tracking-wider mb-0.5">Trainer</div>
-                            <div id="view-card-trainer" class="font-bold text-gray-900 leading-tight">N/A</div>
+
+                    <!-- Name -->
+                    <h3 id="view-card-name" class="text-xl font-black text-gray-900 leading-tight">Name</h3>
+                    <p class="text-xs text-gray-400 font-medium mt-0.5">Joined: <span id="view-card-joined" class="font-bold text-gray-700">01 Jan 2026</span></p>
+
+                    <!-- Contact Details -->
+                    <div class="w-full space-y-2 mt-5 text-left text-xs font-semibold text-gray-700">
+                        <div class="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-phone text-xs"></i>
+                            </div>
+                            <span id="view-card-mobile" class="truncate font-bold">N/A</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                <i class="fa-regular fa-envelope text-xs"></i>
+                            </div>
+                            <span id="view-card-email" class="truncate font-bold">N/A</span>
+                        </div>
+                    </div>
+
+                    <!-- Personal Meta (Gender / DOB) -->
+                    <div class="grid grid-cols-2 gap-2 w-full mt-3 text-xs">
+                        <div class="p-2.5 bg-indigo-50/50 rounded-xl text-center border border-indigo-50">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase block">Gender</span>
+                            <span id="view-card-gender" class="font-bold text-indigo-900 capitalize">Male</span>
+                        </div>
+                        <div class="p-2.5 bg-indigo-50/50 rounded-xl text-center border border-indigo-50">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase block">Date of Birth</span>
+                            <span id="view-card-dob" class="font-bold text-indigo-900">N/A</span>
                         </div>
                     </div>
                 </div>
+
+                <!-- Action buttons -->
+                <div class="w-full grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="openRenewFromActiveView()" class="px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-indigo-600/20 cursor-pointer">
+                        <i class="fa-solid fa-arrows-rotate text-xs"></i> Renew / Upgrade
+                    </button>
+                    <button type="button" onclick="openEditFromActiveView()" class="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-pen text-xs"></i> Edit Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Membership & Financial Details (7 cols) -->
+            <div class="md:col-span-7 space-y-4 flex flex-col justify-between">
+                
+                <!-- Plan & Validity Card -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Active Subscription</span>
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md"><i class="fa-solid fa-dumbbell mr-1"></i> Current Plan</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div id="view-card-plan" class="text-lg font-black text-gray-900 leading-tight">Cardio and Weight (12M)</div>
+                            <div class="text-xs text-indigo-700 font-bold mt-1.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-check text-indigo-500"></i>
+                                <span id="view-card-validity">06 Mar 2027 – 06 Mar 2028</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Health Grid -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Billing & Payment Summary</span>
+                    
+                    <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                        <!-- Plan Fee -->
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-center">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase block tracking-tight">Plan Fee</span>
+                            <span class="text-base sm:text-lg font-black text-gray-900 block mt-0.5">₹<span id="view-card-total-amount">0</span></span>
+                        </div>
+                        
+                        <!-- Amount Paid -->
+                        <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100 text-center">
+                            <span class="text-[10px] font-bold text-emerald-600 uppercase block tracking-tight">Amount Paid</span>
+                            <span class="text-base sm:text-lg font-black text-emerald-600 block mt-0.5">₹<span id="view-card-paid">0</span></span>
+                        </div>
+
+                        <!-- Pending Due -->
+                        <div class="p-3 rounded-xl text-center border transition-all" id="view-card-due-box">
+                            <span class="text-[10px] font-bold uppercase block tracking-tight" id="view-card-due-label">Pending Due</span>
+                            <span class="text-base sm:text-lg font-black block mt-0.5" id="view-card-due-wrapper">₹<span id="view-card-due">0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assignments: Batch & Trainer Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 text-sm">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Assigned Batch</span>
+                            <div id="view-card-batch" class="text-xs font-black text-gray-900 truncate mt-0.5">No Batch Assigned</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 text-sm">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Personal Trainer</span>
+                            <div id="view-card-trainer" class="text-xs font-black text-gray-900 truncate mt-0.5">No Trainer Assigned</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
+
     </div>
 </div>
 
@@ -745,7 +831,10 @@
     }
 
     // ---- View Card Logic ----
+    let currentlyViewingMember = null;
+
     function viewMember(member) {
+        currentlyViewingMember = member;
         const user = member.user || {};
         const plan = member.plan || {};
         const batch = member.batch || null;
@@ -758,20 +847,33 @@
         // Status Colors & Badge
         const banner = document.getElementById('view-card-banner');
         const statusBadge = document.getElementById('view-card-status');
-        statusBadge.textContent = member.status;
+        const photoBadge = document.getElementById('view-card-photo-badge');
+        statusBadge.textContent = member.status ? member.status.toUpperCase() : 'ACTIVE';
         
-        banner.className = "h-32 relative transition-colors duration-300 ";
-        statusBadge.className = "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white shadow-sm transition-colors duration-300 ";
+        banner.className = "px-6 py-4 text-white flex items-center justify-between relative transition-colors duration-300 shrink-0 ";
+        statusBadge.className = "px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white shadow-sm transition-colors duration-300 ";
         
         if (member.status === 'active') {
-            banner.className += "bg-gradient-to-r from-green-400 to-green-600";
-            statusBadge.className += "text-green-600";
+            banner.className += "bg-gradient-to-r from-emerald-500 to-teal-600";
+            statusBadge.className += "text-emerald-600";
+            if (photoBadge) {
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-check"></i>';
+            }
         } else if (member.status === 'expired') {
-            banner.className += "bg-gradient-to-r from-orange-400 to-orange-600";
-            statusBadge.className += "text-orange-600";
+            banner.className += "bg-gradient-to-r from-amber-500 to-orange-600";
+            statusBadge.className += "text-amber-600";
+            if (photoBadge) {
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-clock"></i>';
+            }
         } else {
-            banner.className += "bg-gradient-to-r from-red-400 to-red-600";
-            statusBadge.className += "text-red-600";
+            banner.className += "bg-gradient-to-r from-rose-500 to-red-600";
+            statusBadge.className += "text-rose-600";
+            if (photoBadge) {
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            }
         }
 
         // Basic Info
@@ -786,7 +888,7 @@
         if (plan && plan.plan_group_name) {
             document.getElementById('view-card-plan').textContent = `${plan.plan_group_name} (${plan.duration_months}M)`;
         } else {
-            document.getElementById('view-card-plan').textContent = 'N/A';
+            document.getElementById('view-card-plan').textContent = 'No Active Plan';
         }
 
         if (member.joining_date && plan && plan.duration_months) {
@@ -797,18 +899,50 @@
             const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             document.getElementById('view-card-validity').textContent = `${startStr} – ${expiryStr}`;
         } else {
-            document.getElementById('view-card-validity').textContent = 'N/A';
+            document.getElementById('view-card-validity').textContent = 'No validity set';
         }
         
         document.getElementById('view-card-joined').textContent = member.joining_date ? new Date(member.joining_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
         
-        // Calculate Paid Amount (Payments logic could be complex, assuming we have total amount_received in payments)
-        // Wait, member model returns payments[]!
-        let totalPaid = 0;
-        if(member.payments && member.payments.length > 0) {
-            totalPaid = member.payments.reduce((sum, p) => sum + parseFloat(p.paid_amount), 0);
+        // Calculate Paid Amount for the Current Active Plan (NOT summing all previous lifetime cycles)
+        let currentPlanTotal = member.total_amount ? parseFloat(member.total_amount) : (member.plan_amount ? parseFloat(member.plan_amount) : 0);
+        let currentPlanPaid = 0;
+        let currentPlanDue = 0;
+
+        if (member.payments && member.payments.length > 0) {
+            const sortedPayments = [...member.payments].sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
+            const currentPayment = sortedPayments[0];
+            currentPlanPaid = parseFloat(currentPayment.paid_amount) || 0;
+            currentPlanDue = parseFloat(currentPayment.due_amount) || 0;
+            if (currentPayment.total_amount) {
+                currentPlanTotal = parseFloat(currentPayment.total_amount);
+            }
+        } else {
+            currentPlanPaid = currentPlanTotal;
+            currentPlanDue = 0;
         }
-        document.getElementById('view-card-paid').textContent = totalPaid.toLocaleString();
+
+        document.getElementById('view-card-total-amount').textContent = currentPlanTotal.toLocaleString('en-IN');
+        document.getElementById('view-card-paid').textContent = currentPlanPaid.toLocaleString('en-IN');
+        
+        const dueEl = document.getElementById('view-card-due');
+        const dueBox = document.getElementById('view-card-due-box');
+        const dueLabel = document.getElementById('view-card-due-label');
+        const dueWrapper = document.getElementById('view-card-due-wrapper');
+        
+        if (dueBox) {
+            if (currentPlanDue > 0) {
+                dueBox.className = 'p-3 rounded-xl text-center border transition-all bg-amber-50/90 border-amber-200';
+                if (dueLabel) dueLabel.className = 'text-[10px] font-bold uppercase block tracking-tight text-amber-700';
+                if (dueWrapper) dueWrapper.className = 'text-base sm:text-lg font-black block mt-0.5 text-amber-700';
+                if (dueEl) dueEl.textContent = currentPlanDue.toLocaleString('en-IN');
+            } else {
+                dueBox.className = 'p-3 rounded-xl text-center border transition-all bg-emerald-50/70 border-emerald-100';
+                if (dueLabel) dueLabel.className = 'text-[10px] font-bold uppercase block tracking-tight text-emerald-700';
+                if (dueWrapper) dueWrapper.className = 'text-base sm:text-lg font-black block mt-0.5 text-emerald-700';
+                if (dueEl) dueEl.textContent = '0 (Paid)';
+            }
+        }
 
         // Assignments
         if (batch) {
@@ -829,6 +963,20 @@
 
     function closeViewModal() {
         document.getElementById('view-member-modal').classList.add('hidden');
+    }
+
+    function openRenewFromActiveView() {
+        if (!currentlyViewingMember) return;
+        const memberId = currentlyViewingMember.id;
+        closeViewModal();
+        openRenewModal(memberId);
+    }
+
+    function openEditFromActiveView() {
+        if (!currentlyViewingMember) return;
+        const memberObj = currentlyViewingMember;
+        closeViewModal();
+        openEditWizard(memberObj);
     }
 
     // ---- Wizard Logic ----
@@ -922,6 +1070,7 @@
     let activeMemberCalculatedExpiry = '';
     let todayIsoString = '';
     let activeMemberRecentPaid = 0;
+    let currentNetDifference = 0;
 
     function openRenewModal(id) {
         const member = membersData.find(m => m.id === id);
@@ -939,7 +1088,8 @@
         // Recent paid on current plan
         activeMemberRecentPaid = 0;
         if (member.payments && member.payments.length > 0) {
-            activeMemberRecentPaid = parseFloat(member.payments[0].paid_amount) || 0;
+            const sortedPayments = [...member.payments].sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
+            activeMemberRecentPaid = parseFloat(sortedPayments[0].paid_amount) || 0;
         } else if (member.total_amount) {
             activeMemberRecentPaid = parseFloat(member.total_amount) || 0;
         }
@@ -991,7 +1141,7 @@
         });
         
         document.getElementById('renew_paid').value = '';
-        calculateRenewAmounts();
+        calculateRenewAmounts(true);
     }
 
     function handleActionTypeChange() {
@@ -1019,7 +1169,7 @@
             upgradeLabel.className = 'flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer text-gray-600 hover:bg-gray-100';
         }
 
-        calculateRenewAmounts();
+        calculateRenewAmounts(true);
     }
 
     function handleRenewModeChange() {
@@ -1028,14 +1178,14 @@
         } else {
             document.getElementById('renew_start_date').value = todayIsoString;
         }
-        calculateRenewAmounts();
+        calculateRenewAmounts(true);
     }
 
     function closeRenewModal() {
         document.getElementById('renew-modal').classList.add('hidden');
     }
 
-    function calculateRenewAmounts() {
+    function calculateRenewAmounts(updatePaidInput = true) {
         const select = document.getElementById('renew_plan_id');
         const startDateVal = document.getElementById('renew_start_date').value || todayIsoString;
         const expiryTextEl = document.getElementById('renew-new-expiry-text');
@@ -1046,6 +1196,8 @@
             expiryTextEl.textContent = 'Select plan to preview';
             document.getElementById('calc-new-price').textContent = '0';
             document.getElementById('calc-net-diff').textContent = '0';
+            currentNetDifference = 0;
+            calculateDueLive();
             return;
         }
 
@@ -1055,15 +1207,30 @@
         const discount = parseFloat(document.getElementById('renew_discount').value) || 0;
         const netPlanPrice = Math.max(0, planAmount - discount);
 
-        document.getElementById('calc-new-price').textContent = netPlanPrice.toLocaleString('en-IN');
+        document.getElementById('calc-new-price').textContent = planAmount.toLocaleString('en-IN');
+
+        const discRow = document.getElementById('row-discount-preview');
+        const discEl = document.getElementById('calc-discount-preview');
+        if (discRow && discEl) {
+            if (discount > 0) {
+                discRow.classList.remove('hidden');
+                discEl.textContent = discount.toLocaleString('en-IN');
+            } else {
+                discRow.classList.add('hidden');
+            }
+        }
 
         let netToPay = netPlanPrice;
         if (isUpgrade) {
             netToPay = Math.max(0, netPlanPrice - activeMemberRecentPaid);
         }
 
+        currentNetDifference = netToPay;
         document.getElementById('calc-net-diff').textContent = netToPay.toLocaleString('en-IN');
-        document.getElementById('renew_paid').value = netToPay;
+        
+        if (updatePaidInput) {
+            document.getElementById('renew_paid').value = netToPay;
+        }
 
         // Calculate and show new expiry date
         const sDate = new Date(isUpgrade ? todayIsoString : startDateVal);
@@ -1071,6 +1238,34 @@
         newExpiry.setMonth(newExpiry.getMonth() + durationMonths);
         const formattedNewExpiry = newExpiry.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         expiryTextEl.textContent = `${formattedNewExpiry} (${durationMonths} Mo)`;
+
+        calculateDueLive();
+    }
+
+    function calculateDueLive() {
+        const paidVal = parseFloat(document.getElementById('renew_paid').value) || 0;
+        const remainingDue = Math.max(0, currentNetDifference - paidVal);
+
+        const statusBox = document.getElementById('renew-due-status-box');
+        const statusIcon = document.getElementById('renew-due-status-icon');
+        const statusLabel = document.getElementById('renew-due-status-label');
+        const statusAmount = document.getElementById('renew-due-status-amount');
+
+        if (!statusBox) return;
+
+        if (remainingDue > 0) {
+            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-amber-50 border-amber-200 text-amber-900';
+            statusIcon.className = 'fa-solid fa-triangle-exclamation text-amber-600';
+            statusLabel.textContent = 'Partial Payment (Due Pending)';
+            statusAmount.className = 'font-black text-xs sm:text-sm text-amber-700';
+            statusAmount.textContent = `Remaining Due: ₹${remainingDue.toLocaleString('en-IN')}`;
+        } else {
+            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800';
+            statusIcon.className = 'fa-solid fa-circle-check text-emerald-600';
+            statusLabel.textContent = 'Full Payment (No Pending Dues)';
+            statusAmount.className = 'font-black text-xs sm:text-sm text-emerald-700';
+            statusAmount.textContent = 'Remaining Due: ₹0';
+        }
     }
 
     async function submitRenew(e) {

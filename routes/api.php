@@ -115,3 +115,32 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports Routes
     Route::get('/reports/summary', [\App\Http\Controllers\Api\ReportController::class, 'getSummary']);
 });
+
+// =========================================================================
+// SUPER ADMIN (PLATFORM / SAAS LEVEL) DEDICATED ROUTES
+// =========================================================================
+use App\Http\Controllers\SuperAdmin\SuperAdminController;
+
+Route::prefix('superadmin')->group(function () {
+    // Public Super Admin Login
+    Route::post('/login', [SuperAdminController::class, 'superAdminLogin']);
+    
+    // Direct Excel Exports (Can also accept token in query)
+    Route::get('/export/gyms', [SuperAdminController::class, 'exportGymsExcel']);
+    Route::get('/export/pl', [SuperAdminController::class, 'exportPLExcel']);
+
+    // Protected Super Admin Endpoints
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/dashboard-stats', [SuperAdminController::class, 'getSuperAdminDashboardStats']);
+        Route::get('/gyms', [SuperAdminController::class, 'listGymClients']);
+        Route::post('/gyms', [SuperAdminController::class, 'createGymClient']);
+        Route::post('/gyms/{id}/renew', [SuperAdminController::class, 'renewGymSubscription']);
+        Route::post('/gyms/{id}/toggle-status', [SuperAdminController::class, 'toggleGymStatus']);
+        Route::get('/expenses', [SuperAdminController::class, 'listPlatformExpenses']);
+        Route::post('/expenses', [SuperAdminController::class, 'storePlatformExpense']);
+        Route::delete('/expenses/{id}', [SuperAdminController::class, 'deletePlatformExpense']);
+        Route::post('/settings/profile', [SuperAdminController::class, 'updateSuperAdminProfile']);
+        Route::post('/settings/password', [SuperAdminController::class, 'updateSuperAdminPassword']);
+    });
+});
+
