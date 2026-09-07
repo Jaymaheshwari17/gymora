@@ -1,6 +1,84 @@
 @extends('layouts.dashboard-layout')
 
 @section('dashboard-content')
+<!-- Select2 CSS & JS for Searchable Member Dropdown -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<style>
+/* Select2 Custom Clean Tailwind Styling */
+.select2-container--default .select2-selection--single {
+    background-color: transparent !important;
+    border: none !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #374151 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 28px !important;
+    padding-left: 2px !important;
+    padding-right: 18px !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 28px !important;
+    right: 2px !important;
+}
+.select2-dropdown {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    z-index: 99999 !important;
+}
+.select2-container--default .select2-search--dropdown {
+    padding: 8px !important;
+    background: #f9fafb !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1.5px solid #d1d5db !important;
+    border-radius: 0.6rem !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    outline: none !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    caret-color: #5d5fef !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field::placeholder {
+    color: #9ca3af !important;
+    font-weight: 500 !important;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: #5d5fef !important;
+    box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.18) !important;
+    color: #111827 !important;
+    background: #ffffff !important;
+}
+.select2-container--default .select2-results__option {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #5d5fef !important;
+    color: #ffffff !important;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #eef2ff !important;
+    color: #4338ca !important;
+    font-weight: 700 !important;
+}
+</style>
+
 <div class="flex-1 overflow-y-auto p-8 bg-[#f8f9fc]">
     <div class="space-y-6">
     <!-- Header -->
@@ -9,31 +87,41 @@
             <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Gym Members</h1>
             <p class="text-sm text-gray-500 mt-1 font-medium">Manage all your members and their subscriptions.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2.5 overflow-x-auto pb-1 xl:pb-0 hide-scrollbar">
             <!-- Filter 1: Membership Status & Expiry -->
-            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
                 <i class="fa-solid fa-circle-dot text-indigo-500 text-xs"></i>
                 <select id="member-status-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                     <option value="all">All Status</option>
                     <option value="active">Active Members</option>
                     <option value="expired_month">Expired This Month</option>
                     <option value="expired">All Expired Members</option>
-                    <option value="expiring">Expiring Soon (7 Days)</option>
+                    <option value="expiring">Expiring Soon (3 Days)</option>
+                    <option value="new">New Members (This Month)</option>
                     <option value="inactive">Inactive</option>
                 </select>
             </div>
 
             <!-- Filter 2: Plan / Package -->
-            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
                 <i class="fa-solid fa-dumbbell text-indigo-500 text-xs"></i>
-                <select id="member-plan-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[160px] truncate">
+                <select id="member-plan-filter" onchange="renderTable()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[130px] truncate">
                     <option value="all">All Plans</option>
                     <!-- Populated dynamically via JS -->
                 </select>
             </div>
 
-            <button onclick="openWizardModal()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer">
-                <i class="fa-solid fa-user-plus"></i> Add New Member
+            <!-- Filter 3: Member Search (Select2) -->
+            <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
+                <i class="fa-solid fa-user text-indigo-500 text-xs"></i>
+                <select id="member-search-select" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer w-40">
+                    <option value="">Search Member...</option>
+                    <!-- Populated dynamically via JS or DataTables -->
+                </select>
+            </div>
+
+            <button onclick="openWizardModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-[11px] font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/20 cursor-pointer shrink-0">
+                <i class="fa-solid fa-user-plus text-[11px]"></i> Add New Member
             </button>
         </div>
     </div>
@@ -652,17 +740,30 @@
         // Set today as default joining date
         document.getElementById('joining_date').valueAsDate = new Date();
         
-        // Read URL query parameter for filter (e.g. ?filter=expired_month or ?filter=expired or ?filter=expiring)
+        // Read URL query parameter for filter (e.g. ?filter=expired_month or ?filter=expired or ?filter=expiring or ?filter=new or ?filter=active)
         const urlParams = new URLSearchParams(window.location.search);
         let urlFilter = urlParams.get('filter');
         if (urlFilter) {
             urlFilter = urlFilter.replace(/\/$/, '').toLowerCase(); // Clean trailing slash
             const filterSelect = document.getElementById('member-status-filter');
             if (filterSelect) {
-                if (urlFilter === 'expired' || urlFilter === 'expired_month' || urlFilter === 'expiring' || urlFilter === 'active' || urlFilter === 'inactive') {
+                const validFilters = ['expired', 'expired_month', 'expiring', 'new', 'active', 'inactive'];
+                if (validFilters.includes(urlFilter)) {
                     filterSelect.value = urlFilter;
                 }
             }
+        }
+
+        // Date range from URL (e.g. from Dashboard View All click)
+        const urlStartDate = urlParams.get('start_date');
+        const urlEndDate = urlParams.get('end_date');
+        if (urlStartDate && urlEndDate) {
+            const fromInput = document.getElementById('member-from-date');
+            const toInput = document.getElementById('member-to-date');
+            const clearBtn = document.getElementById('btn-clear-member-date');
+            if (fromInput) fromInput.value = urlStartDate;
+            if (toInput) toInput.value = urlEndDate;
+            if (clearBtn) clearBtn.classList.remove('hidden');
         }
 
         loadInitialData();
@@ -692,6 +793,33 @@
         const data = await res.json();
         if (data.success) {
             membersData = data.data;
+
+            // Populate Select2 Member Filter
+            const searchSelect = $('#member-search-select');
+            if (searchSelect.length) {
+                let html = '<option></option>';
+                membersData.forEach(m => {
+                    const name = (m.user && m.user.name) ? m.user.name : (m.name || 'Member');
+                    const phone = (m.user && m.user.mobile) ? m.user.mobile : (m.phone || '');
+                    const label = phone ? `${name} (${phone})` : name;
+                    html += `<option value="${name}">${label}</option>`;
+                });
+                searchSelect.html(html);
+
+                if (typeof $.fn.select2 === 'function') {
+                    searchSelect.select2({
+                        placeholder: 'Search Member...',
+                        width: '200px',
+                        allowClear: true
+                    }).off('change.select2Member').on('change.select2Member', function() {
+                        const val = $(this).val() || '';
+                        if (dataTable) {
+                            dataTable.search(val).draw();
+                        }
+                    });
+                }
+            }
+
             renderTable();
         }
     }
@@ -776,8 +904,23 @@
         if (filterSelect) filterSelect.value = 'all';
         const planSelect = document.getElementById('member-plan-filter');
         if (planSelect) planSelect.value = 'all';
-        // Clean URL query param without refreshing
+        const fromInput = document.getElementById('member-from-date');
+        const toInput = document.getElementById('member-to-date');
+        if (fromInput) fromInput.value = '';
+        if (toInput) toInput.value = '';
+        const clearDateBtn = document.getElementById('btn-clear-member-date');
+        if (clearDateBtn) clearDateBtn.classList.add('hidden');
         window.history.replaceState({}, document.title, window.location.pathname);
+        renderTable();
+    }
+
+    function clearMemberDateFilter() {
+        const fromInput = document.getElementById('member-from-date');
+        const toInput = document.getElementById('member-to-date');
+        if (fromInput) fromInput.value = '';
+        if (toInput) toInput.value = '';
+        const clearDateBtn = document.getElementById('btn-clear-member-date');
+        if (clearDateBtn) clearDateBtn.classList.add('hidden');
         renderTable();
     }
 
@@ -789,26 +932,69 @@
 
         const statusFilter = document.getElementById('member-status-filter')?.value || 'all';
         const planFilter = document.getElementById('member-plan-filter')?.value || 'all';
+        const fromDate = document.getElementById('member-from-date')?.value || '';
+        const toDate = document.getElementById('member-to-date')?.value || '';
+
+        const clearDateBtn = document.getElementById('btn-clear-member-date');
+        if (clearDateBtn) {
+            if (fromDate && toDate) clearDateBtn.classList.remove('hidden');
+            else clearDateBtn.classList.add('hidden');
+        }
 
         const filteredMembers = membersData.filter(member => {
-            const isExpiredThisMonth = !!member.is_expired_this_month;
-            const isExpiringSoon = !!member.is_expiring_soon;
             const isExpired = !!member.is_expired || member.status === 'expired' || member.dynamic_status === 'expired';
-            const isActive = !isExpired && (member.status === 'active' || member.dynamic_status === 'active');
+            const isExpiredThisMonth = !!member.is_expired_this_month;
+            const isExpiringSoon = !!member.is_expiring_soon || member.dynamic_status === 'expiring';
+            const isInactive = member.status === 'inactive' || member.dynamic_status === 'inactive';
+            const isNew = !!member.is_new_this_month;
+            const isActive = !isExpired && !isInactive;
 
+            const jDate = member.joining_date || (member.created_at ? member.created_at.substring(0, 10) : '');
+            const expDate = member.expiry_date || '';
+
+            // 1. Status Filter with Date Range Support
             if (statusFilter === 'expired_month') {
-                if (!isExpiredThisMonth) return false;
+                if (fromDate && toDate) {
+                    if (!expDate || expDate < fromDate || expDate > toDate || !isExpired) return false;
+                } else {
+                    if (!isExpiredThisMonth) return false;
+                }
             } else if (statusFilter === 'expired') {
-                if (!isExpired) return false;
+                if (fromDate && toDate) {
+                    if (!expDate || expDate < fromDate || expDate > toDate || !isExpired) return false;
+                } else {
+                    if (!isExpired) return false;
+                }
             } else if (statusFilter === 'expiring') {
-                if (!isExpiringSoon) return false;
+                if (fromDate && toDate) {
+                    if (!expDate || expDate < fromDate || expDate > toDate || isExpired) return false;
+                } else {
+                    if (!isExpiringSoon) return false;
+                }
+            } else if (statusFilter === 'new') {
+                if (fromDate && toDate) {
+                    if (!jDate || jDate < fromDate || jDate > toDate) return false;
+                } else {
+                    if (!isNew) return false;
+                }
             } else if (statusFilter === 'active') {
-                if (!isActive) return false;
+                if (fromDate && toDate) {
+                    if (!isActive || (jDate && (jDate < fromDate || jDate > toDate))) return false;
+                } else {
+                    if (!isActive) return false;
+                }
             } else if (statusFilter === 'inactive') {
-                if (member.status !== 'inactive') return false;
+                if (!isInactive) return false;
             }
 
+            // 2. Date Range Filter when statusFilter is 'all'
+            if (statusFilter === 'all' && fromDate && toDate) {
+                if (!jDate || jDate < fromDate || jDate > toDate) return false;
+            }
+
+            // 3. Plan Filter
             if (planFilter !== 'all' && String(member.plan_id) !== String(planFilter)) return false;
+
             return true;
         });
 
@@ -817,14 +1003,22 @@
         const bannerLabel = document.getElementById('filter-banner-label');
         const bannerCount = document.getElementById('filter-banner-count');
         if (banner && bannerLabel && bannerCount) {
-            if (statusFilter !== 'all' || planFilter !== 'all') {
+            if (statusFilter !== 'all' || planFilter !== 'all' || (fromDate && toDate)) {
                 banner.classList.remove('hidden');
                 let filterName = 'Custom Filter';
                 if (statusFilter === 'expired_month') filterName = 'Expired This Month';
                 else if (statusFilter === 'expired') filterName = 'All Expired Members';
-                else if (statusFilter === 'expiring') filterName = 'Expiring Soon (Next 7 Days)';
+                else if (statusFilter === 'expiring') filterName = 'Expiring Soon (Next 3 Days)';
+                else if (statusFilter === 'new') filterName = 'New Members';
                 else if (statusFilter === 'active') filterName = 'Active Members Only';
                 else if (statusFilter === 'inactive') filterName = 'Inactive Members';
+                else if (statusFilter === 'all') filterName = 'Members in Period';
+
+                if (fromDate && toDate) {
+                    const fStr = new Date(fromDate).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+                    const tStr = new Date(toDate).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+                    filterName += ` (${fStr} - ${tStr})`;
+                }
 
                 if (planFilter !== 'all') {
                     const planObj = plansData.find(p => String(p.id) === String(planFilter));
@@ -846,24 +1040,44 @@
             const plan = member.plan || {};
             const batch = member.batch || null;
             
-            let statusClass = 'bg-green-100 text-green-700';
+            const isExpired = !!member.is_expired || member.status === 'expired' || member.dynamic_status === 'expired';
+            const isExpiringSoon = !!member.is_expiring_soon || member.dynamic_status === 'expiring';
+            const isInactive = member.status === 'inactive' || member.dynamic_status === 'inactive';
+
+            let statusClass = 'bg-emerald-100 text-emerald-700';
             let statusText = 'ACTIVE';
 
-            if (member.status === 'inactive') {
+            if (isInactive) {
                 statusClass = 'bg-gray-100 text-gray-700';
                 statusText = 'INACTIVE';
-            } else if (member.status === 'expired') {
-                statusClass = 'bg-red-100 text-red-700';
+            } else if (isExpired) {
+                statusClass = 'bg-rose-100 text-rose-700';
                 statusText = 'EXPIRED';
+            } else if (isExpiringSoon) {
+                statusClass = 'bg-amber-100 text-amber-700';
+                statusText = 'EXPIRING SOON';
             } else {
-                statusClass = 'bg-green-100 text-green-700';
+                statusClass = 'bg-emerald-100 text-emerald-700';
                 statusText = 'ACTIVE';
             }
             
             const photoUrl = user.photo ? `/${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'U')}&background=f3f4f6&color=6b7280`;
 
             const planDisplay = plan && plan.plan_group_name ? `<div class="font-bold text-gray-800">${plan.plan_group_name} - ${plan.duration_months}M</div>` : '<div class="text-gray-400 text-sm">No Plan</div>';
+            
+            const expiryText = member.formatted_expiry_date || (member.expiry_date ? new Date(member.expiry_date).toLocaleDateString('en-GB') : null);
+            let expiryBadge = '';
+            if (isExpired) {
+                expiryBadge = `<div class="text-[11px] text-rose-600 font-bold mt-0.5"><i class="fa-regular fa-calendar-xmark mr-1"></i>Expired: ${expiryText || 'Past date'}</div>`;
+            } else if (isExpiringSoon) {
+                expiryBadge = `<div class="text-[11px] text-amber-600 font-bold mt-0.5"><i class="fa-regular fa-clock mr-1"></i>Expires in ${member.days_remaining}d (${expiryText})</div>`;
+            } else if (expiryText && expiryText !== 'No Expiry') {
+                expiryBadge = `<div class="text-[11px] text-gray-400 font-medium mt-0.5"><i class="fa-regular fa-calendar-check mr-1"></i>Valid till: ${expiryText}</div>`;
+            }
+
             const batchDisplay = batch ? `<div class="text-[11px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded border border-purple-100"><i class="fa-solid fa-layer-group"></i> ${batch.name}</div>` : '';
+
+            const startedText = member.joining_date ? new Date(member.joining_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'N/A';
 
             const renewBtnStyle = 'w-10 h-10 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition shadow-sm cursor-pointer';
 
@@ -883,11 +1097,44 @@
                         <div class="text-sm font-medium text-gray-900"><i class="fa-solid fa-phone text-gray-400 w-4"></i> ${user.mobile || 'N/A'}</div>
                     </td>
                     <td>
-                        ${planDisplay}
-                        ${batchDisplay}
+                        <!-- Plan & Batch with Floating Hover Tooltip -->
+                        <div class="relative group cursor-pointer inline-block">
+                            ${planDisplay}
+                            ${expiryBadge}
+                            ${batchDisplay}
+                            
+                            <!-- 🌟 Hover Floating Plan Details Card -->
+                            <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 bg-gray-900/95 text-white backdrop-blur-md p-3.5 rounded-2xl shadow-2xl z-50 pointer-events-none border border-gray-700/60 text-xs transition-all duration-200">
+                                <div class="flex items-center justify-between border-b border-gray-700/80 pb-2 mb-2">
+                                    <div class="flex items-center gap-1.5 font-bold text-white text-xs truncate max-w-[150px]">
+                                        <i class="fa-solid fa-dumbbell text-indigo-400"></i>
+                                        <span class="truncate">${plan.plan_group_name || 'Membership'}</span>
+                                    </div>
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${statusClass}">${statusText}</span>
+                                </div>
+                                <div class="space-y-1.5 text-[11px]">
+                                    <div class="flex justify-between items-center text-gray-300">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-plus text-emerald-400"></i> Plan Started:</span>
+                                        <span class="font-bold text-white">${startedText}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-gray-300">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-xmark text-rose-400"></i> Plan Expiry:</span>
+                                        <span class="font-bold ${isExpired ? 'text-rose-400' : 'text-emerald-400'}">${expiryText || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-gray-300">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-clock text-amber-400"></i> Duration:</span>
+                                        <span class="font-bold text-white">${plan.duration_months ? plan.duration_months + ' Month(s)' : 'Custom'}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-gray-300 border-t border-gray-800 pt-1.5 mt-1.5">
+                                        <span class="text-gray-400">Plan Amount:</span>
+                                        <span class="font-black text-amber-300">₹${member.plan_amount || plan.amount || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-black tracking-wide ${statusClass}">
                             ${statusText}
                         </span>
                     </td>
@@ -925,7 +1172,7 @@
             columnDefs: [
                 { orderable: false, targets: [0, 1, 5] } // Disable sorting on Sr No, Member info, and Actions
             ],
-            order: [[4, 'asc']] // Default sort by Status
+            order: [[0, 'asc']]
         });
     }
 
@@ -947,19 +1194,32 @@
         const banner = document.getElementById('view-card-banner');
         const statusBadge = document.getElementById('view-card-status');
         const photoBadge = document.getElementById('view-card-photo-badge');
-        statusBadge.textContent = member.status ? member.status.toUpperCase() : 'ACTIVE';
         
+        const isExpired = !!member.is_expired || member.status === 'expired' || member.dynamic_status === 'expired';
+        const isExpiringSoon = !!member.is_expiring_soon || member.dynamic_status === 'expiring';
+        const isInactive = member.status === 'inactive' || member.dynamic_status === 'inactive';
+
         banner.className = "px-6 py-4 text-white flex items-center justify-between relative transition-colors duration-300 shrink-0 ";
         statusBadge.className = "px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white shadow-sm transition-colors duration-300 ";
-        
-        if (member.status === 'active') {
-            banner.className += "bg-gradient-to-r from-emerald-500 to-teal-600";
-            statusBadge.className += "text-emerald-600";
+
+        if (isInactive) {
+            statusBadge.textContent = 'INACTIVE';
+            banner.className += "bg-gradient-to-r from-gray-500 to-gray-600";
+            statusBadge.className += "text-gray-700";
             if (photoBadge) {
-                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
-                photoBadge.innerHTML = '<i class="fa-solid fa-check"></i>';
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-minus"></i>';
             }
-        } else if (member.status === 'expired') {
+        } else if (isExpired) {
+            statusBadge.textContent = 'EXPIRED';
+            banner.className += "bg-gradient-to-r from-rose-500 to-red-600";
+            statusBadge.className += "text-rose-600";
+            if (photoBadge) {
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            }
+        } else if (isExpiringSoon) {
+            statusBadge.textContent = 'EXPIRING SOON';
             banner.className += "bg-gradient-to-r from-amber-500 to-orange-600";
             statusBadge.className += "text-amber-600";
             if (photoBadge) {
@@ -967,11 +1227,12 @@
                 photoBadge.innerHTML = '<i class="fa-solid fa-clock"></i>';
             }
         } else {
-            banner.className += "bg-gradient-to-r from-rose-500 to-red-600";
-            statusBadge.className += "text-rose-600";
+            statusBadge.textContent = 'ACTIVE';
+            banner.className += "bg-gradient-to-r from-emerald-500 to-teal-600";
+            statusBadge.className += "text-emerald-600";
             if (photoBadge) {
-                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
-                photoBadge.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                photoBadge.className = "absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px]";
+                photoBadge.innerHTML = '<i class="fa-solid fa-check"></i>';
             }
         }
 

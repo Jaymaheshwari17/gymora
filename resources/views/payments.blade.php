@@ -120,7 +120,7 @@
                 <!-- Filter: Date Period Filter -->
                 <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                     <i class="fa-solid fa-calendar-days text-[#5d5fef] text-xs"></i>
-                    <select id="date-filter" onchange="renderPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                    <select id="date-filter" onchange="filterPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
                         <option value="this_week">This Week</option>
@@ -168,19 +168,19 @@
                 <h2 class="text-sm font-bold text-gray-900">Payment Transactions & Tax Invoices</h2>
                 <span class="text-xs text-gray-400 font-semibold" id="payment-count-display">Showing 0 records</span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+            <div class="overflow-x-auto px-4 pb-4">
+                <table id="paymentsTable" class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                            <th class="px-6 py-3.5">Invoice #</th>
-                            <th class="px-6 py-3.5">Member Details</th>
-                            <th class="px-6 py-3.5">Plan / Period</th>
-                            <th class="px-6 py-3.5">Payment Date</th>
-                            <th class="px-6 py-3.5">Total Bill</th>
-                            <th class="px-6 py-3.5">Paid</th>
-                            <th class="px-6 py-3.5">Due</th>
-                            <th class="px-6 py-3.5">Status</th>
-                            <th class="px-6 py-3.5 text-right">Actions</th>
+                            <th class="px-4 py-3.5">Invoice #</th>
+                            <th class="px-4 py-3.5">Member Details</th>
+                            <th class="px-4 py-3.5">Plan / Period</th>
+                            <th class="px-4 py-3.5">Payment Date</th>
+                            <th class="px-4 py-3.5">Total Bill</th>
+                            <th class="px-4 py-3.5">Paid</th>
+                            <th class="px-4 py-3.5">Due</th>
+                            <th class="px-4 py-3.5">Status</th>
+                            <th class="px-4 py-3.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="payments-tbody" class="text-xs divide-y divide-gray-50 font-medium">
@@ -669,6 +669,12 @@ async function populateMemberFilterOptions() {
     }
 }
 
+let paymentsDataTable = null;
+
+function filterPayments() {
+    renderPayments();
+}
+
 function renderPayments() {
     const tbody = document.getElementById('payments-tbody');
     const search = document.getElementById('search-payment').value.toLowerCase().trim();
@@ -733,9 +739,11 @@ function renderPayments() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-12 text-center text-gray-400 font-medium">No payment records found.</td></tr>`;
+        if (paymentsDataTable) { paymentsDataTable.destroy(); paymentsDataTable = null; }
         return;
     }
 
+    // Render HTML
     let html = '';
     filtered.forEach(p => {
         const statusColors = {
@@ -806,9 +814,33 @@ function renderPayments() {
     });
     
     tbody.innerHTML = html;
+
+    // Init DataTable (same as members page)
+    if (paymentsDataTable) {
+        paymentsDataTable.destroy();
+    }
+    paymentsDataTable = $('#paymentsTable').DataTable({
+        pageLength: 25,
+        ordering: true,
+        responsive: true,
+        language: {
+            search: "",
+            searchPlaceholder: "Search...",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ payments"
+        },
+        columnDefs: [
+            { orderable: false, targets: [0, 8] }
+        ],
+        order: [[3, 'desc']]
+    });
 }
 
-document.getElementById('search-payment').addEventListener('input', renderPayments);
+document.getElementById('search-payment').addEventListener('input', function() {
+    if (paymentsDataTable) {
+        paymentsDataTable.search(this.value).draw();
+    }
+});
 
 // ==========================================
 // 🌟 POPULATE INVOICE DATA
@@ -1206,7 +1238,15 @@ async function deletePayment(id, invNum) {
 }
 
 // Initial fetch
-document.addEventListener('DOMContentLoaded', fetchPayments);
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filter = urlParams.get('filter');
+    if (filter === 'due' || filter === 'pending') {
+        const statusEl = document.getElementById('status-filter');
+        if (statusEl) statusEl.value = 'pending';
+    }
+    fetchPayments();
+});
 </script>
 @endpush
 @endsection

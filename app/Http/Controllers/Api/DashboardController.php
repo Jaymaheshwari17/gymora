@@ -40,7 +40,7 @@ class DashboardController extends Controller
                     $startDate = \Carbon\Carbon::parse($customStart)->startOfDay();
                     $endDate = \Carbon\Carbon::parse($customEnd)->endOfDay();
                     $isDateFiltered = true;
-                    $periodLabel = $startDate->format('d M') . ' - ' . $endDate->format('d M Y');
+                    $periodLabel = $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y');
                 } catch (\Exception $de) {
                     $startDate = null;
                     $endDate = null;
@@ -48,40 +48,134 @@ class DashboardController extends Controller
                 }
             }
 
-            // 1. Top Stats (All Data by default, or Filtered by Date Range)
-            $totalMembers = Member::where('gym_id', $gymId)->count();
-            $activeMembers = Member::where('gym_id', $gymId)->where('status', 'active')->count();
+            $allGymMembers = Member::with('plan')->where('gym_id', $gymId)->get();
+            $now = now();
+            $threeDaysFromNow = now()->addDays(3);
+            $startOfMonth = now()->startOfMonth();
 
             if ($isDateFiltered && $startDate && $endDate) {
+                // Members registered in this period
+                $membersInPeriod = Member::with('plan')->where('gym_id', $gymId)
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('joining_date', [$startDate->toDateString(), $endDate->toDateString()])
+                          ->orWhere(function($sub) use ($startDate, $endDate) {
+                              $sub->whereNull('joining_date')->whereBetween('created_at', [$startDate, $endDate]);
+                          });
+                    })->get();
+
+                $totalMembers = $membersInPeriod->count();
+                $activeMembers = 0;
+                $expiringSoon = 0;
+                $expiredThisMonth = 0;
+
+                // Alerts based on the filtered date range
+                foreach ($allGymMembers as $member) {
+                    if ($member->status === 'inactive') continue;
+
+                    $plan = $member->plan;
+                    $duration = $plan ? (int)$plan->duration_months : 0;
+                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
+                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+
+                    if ($expiryDate && $expiryDate->between($startDate, $endDate)) {
+                        if ($expiryDate->isPast()) {
+                            $expiredThisMonth++;
+                        } else {
+                            $expiringSoon++;
+                        }
+                    }
+                }
+
+                foreach ($membersInPeriod as $member) {
+                    if ($member->status === 'inactive') continue;
+                    $plan = $member->plan;
+                    $duration = $plan ? (int)$plan->duration_months : 0;
+                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
+                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+                    $isExpired = $expiryDate ? $expiryDate->isPast() : false;
+                    if (!$isExpired) {
+                        $activeMembers++;
+                    }
+                }
+
                 // Transactions or payments between dates
                 $txSum = (float) \App\Models\PaymentTransaction::where('gym_id', $gymId)
                     ->whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()])
                     ->sum('amount');
                 
                 $paySum = (float) Payment::where('gym_id', $gymId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()])
+                          ->orWhere(function($sub) use ($startDate, $endDate) {
+                              $sub->whereNull('payment_date')->whereBetween('created_at', [$startDate, $endDate]);
+                          });
+                    })
                     ->sum('paid_amount');
 
                 $collectedFees = max($txSum, $paySum);
 
                 $pendingFees = (float) Payment::where('gym_id', $gymId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()])
+                          ->orWhere(function($sub) use ($startDate, $endDate) {
+                              $sub->whereNull('payment_date')->whereBetween('created_at', [$startDate, $endDate]);
+                          });
+                    })
                     ->sum('due_amount');
 
-                $newMembersThisPeriod = Member::where('gym_id', $gymId)
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
+                $newMembersThisPeriod = $totalMembers;
 
                 $dueThisPeriod = Payment::where('gym_id', $gymId)
                     ->where('due_amount', '>', 0)
-                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('payment_date', [$startDate->toDateString(), $endDate->toDateString()])
+                          ->orWhereBetween('created_at', [$startDate, $endDate]);
+                    })
                     ->distinct('member_id')
                     ->count('member_id');
             } else {
                 // Default: All Data (Total overall stats)
+                $totalMembers = $allGymMembers->count();
+                $activeMembers = 0;
+                $expiringSoon = 0;
+                $expiredThisMonth = 0;
+
+                foreach ($allGymMembers as $member) {
+                    if ($member->status === 'inactive') {
+                        continue;
+                    }
+
+                    $plan = $member->plan;
+                    $duration = $plan ? (int)$plan->duration_months : 0;
+                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
+                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+
+                    $isExpired = $expiryDate ? $expiryDate->isPast() : false;
+                    $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
+                    $isExpiredThisMonth = $expiryDate ? ($expiryDate->isPast() && $expiryDate->between($startOfMonth, $now)) : false;
+
+                    if (!$isExpired && $member->status === 'active') {
+                        $activeMembers++;
+                    }
+                    if ($isExpiringSoon) {
+                        $expiringSoon++;
+                    }
+                    if ($isExpiredThisMonth) {
+                        $expiredThisMonth++;
+                    }
+                }
+
                 $collectedFees = (float) Payment::where('gym_id', $gymId)->sum('paid_amount');
                 $pendingFees = (float) Payment::where('gym_id', $gymId)->sum('due_amount');
-                $newMembersThisPeriod = $totalMembers;
+
+                $newMembersThisPeriod = Member::where('gym_id', $gymId)
+                    ->where(function($q) use ($startOfMonth, $now) {
+                        $q->whereBetween('joining_date', [$startOfMonth->toDateString(), $now->toDateString()])
+                          ->orWhere(function($sub) use ($startOfMonth, $now) {
+                              $sub->whereNull('joining_date')->whereBetween('created_at', [$startOfMonth, $now]);
+                          });
+                    })->count();
+
                 $dueThisPeriod = Payment::where('gym_id', $gymId)->where('due_amount', '>', 0)->distinct('member_id')->count('member_id');
             }
 
@@ -153,27 +247,6 @@ class DashboardController extends Controller
                 $activeSparkline[] = $aCountAtDay;
                 $pendingSparkline[] = $pSumAtDay;
                 $collectedSparkline[] = $cSumAtDay;
-            }
-
-            // 3. Important Alerts
-            $membersForExpiry = Member::with('plan')->where('gym_id', $gymId)->whereNotNull('plan_id')->get();
-            $expiringSoon = 0;
-            $expiredThisMonth = 0;
-            
-            $now = now();
-            $sevenDaysFromNow = now()->addDays(7);
-            $startOfMonth = now()->startOfMonth();
-            
-            foreach($membersForExpiry as $member) {
-                if ($member->plan && $member->plan->duration_months) {
-                    $endDateExpiry = \Carbon\Carbon::parse($member->joining_date)->addMonths($member->plan->duration_months);
-                    if ($endDateExpiry->between($now, $sevenDaysFromNow)) {
-                        $expiringSoon++;
-                    }
-                    if ($endDateExpiry->isPast() && $endDateExpiry->between($startOfMonth, $now)) {
-                        $expiredThisMonth++;
-                    }
-                }
             }
 
             $dueThisMonth = $dueThisPeriod;
@@ -518,16 +591,16 @@ class DashboardController extends Controller
             $gymId = $request->user()->gym_id;
             $notifications = [];
 
-            // 1. Expiring Soon (Next 7 days)
+            // 1. Expiring Soon (Next 3 days)
             $membersForExpiry = Member::with('plan')->where('gym_id', $gymId)->whereNotNull('plan_id')->where('status', 'active')->get();
             $expiringSoon = 0;
             $now = now();
-            $sevenDaysFromNow = now()->addDays(7);
+            $threeDaysFromNow = now()->addDays(3);
             
             foreach($membersForExpiry as $member) {
                 if ($member->plan && $member->plan->duration_months) {
                     $endDate = \Carbon\Carbon::parse($member->joining_date)->addMonths($member->plan->duration_months);
-                    if ($endDate->between($now, $sevenDaysFromNow)) {
+                    if ($endDate->between($now, $threeDaysFromNow)) {
                         $expiringSoon++;
                     }
                 }
@@ -540,7 +613,7 @@ class DashboardController extends Controller
                     'color' => 'text-yellow-500',
                     'bg' => 'bg-yellow-50',
                     'title' => 'Expiring Soon',
-                    'message' => "$expiringSoon member(s) have plans expiring in the next 7 days.",
+                    'message' => "$expiringSoon member(s) have plans expiring in the next 3 days.",
                     'time' => 'Action Required'
                 ];
             }

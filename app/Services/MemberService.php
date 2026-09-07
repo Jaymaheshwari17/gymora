@@ -29,7 +29,7 @@ class MemberService
             
             $members = $query->latest()->get();
             $now = now();
-            $sevenDaysFromNow = now()->addDays(7);
+            $threeDaysFromNow = now()->addDays(3);
             $startOfMonth = now()->startOfMonth();
 
             foreach ($members as $m) {
@@ -39,15 +39,24 @@ class MemberService
                 $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
 
                 $isExpired = $expiryDate ? $expiryDate->isPast() : false;
-                $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $sevenDaysFromNow)) : false;
+                $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
                 $isExpiredThisMonth = $expiryDate ? ($expiryDate->isPast() && $expiryDate->between($startOfMonth, $now)) : false;
                 $daysRemaining = $expiryDate ? (int) $now->diffInDays($expiryDate, false) : 0;
+
+                // New this month check
+                $isNewThisMonth = false;
+                if ($joiningDate) {
+                    $isNewThisMonth = $joiningDate->isCurrentMonth() && $joiningDate->isCurrentYear();
+                } elseif ($m->created_at) {
+                    $isNewThisMonth = $m->created_at->isCurrentMonth() && $m->created_at->isCurrentYear();
+                }
 
                 $m->expiry_date = $expiryDate ? $expiryDate->format('Y-m-d') : null;
                 $m->formatted_expiry_date = $expiryDate ? $expiryDate->format('d M Y') : 'No Expiry';
                 $m->is_expired = $isExpired;
                 $m->is_expiring_soon = $isExpiringSoon;
                 $m->is_expired_this_month = $isExpiredThisMonth;
+                $m->is_new_this_month = $isNewThisMonth;
                 $m->days_remaining = $daysRemaining;
 
                 if ($m->status === 'inactive') {

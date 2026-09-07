@@ -53,12 +53,12 @@
                 </div>
                 <div>
                     <h3 class="text-xs font-bold text-gray-900 leading-tight">Expiring Soon</h3>
-                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1">Members whose plans end soon</p>
+                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1" id="stat-expiring-subtitle">Members whose plans end soon</p>
                 </div>
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-red-500" id="stat-expiring-soon">0</span>
-                <a href="/members?filter=expiring" class="bg-red-50 hover:bg-red-100 text-red-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
+                <a id="link-expiring-all" href="/members?filter=expiring" class="bg-red-50 hover:bg-red-100 text-red-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
             </div>
         </div>
 
@@ -69,55 +69,30 @@
                     <i class="fa-regular fa-calendar-xmark"></i>
                 </div>
                 <div>
-                    <h3 class="text-xs font-bold text-gray-900 leading-tight">Expired This Month</h3>
-                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1">Plans that expired recently</p>
+                    <h3 class="text-xs font-bold text-gray-900 leading-tight" id="stat-expired-title">Expired This Month</h3>
+                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1" id="stat-expired-subtitle">Plans that expired recently</p>
                 </div>
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-orange-500" id="stat-expired-month">0</span>
-                <a href="/members?filter=expired_month" class="bg-orange-50 hover:bg-orange-100 text-orange-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
+                <a id="link-expired-all" href="/members?filter=expired_month" class="bg-orange-50 hover:bg-orange-100 text-orange-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
             </div>
         </div>
 
-        <!-- Due This Month (With Hover Tooltip) -->
-        <div class="relative group bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-[130px]">
+        <!-- Due This Month -->
+        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-[130px]">
             <div class="flex items-start gap-3.5">
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-base shrink-0">
                     <i class="fa-solid fa-indian-rupee-sign"></i>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-bold text-gray-900 leading-tight">Due This Month</h3>
-                        <span id="badge-due-details" class="hidden text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded cursor-help">
-                            <i class="fa-solid fa-info text-[9px] mr-0.5"></i> Details
-                        </span>
-                    </div>
-                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1 truncate">Members with pending fees</p>
+                <div>
+                    <h3 class="text-xs font-bold text-gray-900 leading-tight" id="stat-due-title">Due This Month</h3>
+                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1 truncate" id="stat-due-subtitle">Members with pending fees</p>
                 </div>
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-amber-500" id="stat-due-month">0</span>
-                <a href="/payments?filter=due" class="bg-amber-50 hover:bg-amber-100 text-amber-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
-            </div>
-
-            <!-- 🌟 Hover Tooltip / Dropdown Popup (Only visible when dues > 0) -->
-            <div id="tooltip-due-container" class="hidden invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 transform scale-95 group-hover:scale-100 absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-amber-100/90 p-4 z-50 pointer-events-auto">
-                <div class="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs font-bold">
-                            <i class="fa-solid fa-wallet"></i>
-                        </span>
-                        <span class="text-xs font-extrabold text-gray-900">Due Members</span>
-                    </div>
-                    <span id="tooltip-due-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100">0 Due</span>
-                </div>
-                <div id="tooltip-due-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 text-xs divide-y divide-gray-50">
-                    <div class="py-2 text-center text-gray-400 text-[11px]">No pending fees due!</div>
-                </div>
-                <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                    <span class="text-gray-400 font-medium">Collect dues easily</span>
-                    <a href="/payments?filter=due" class="text-amber-600 font-bold hover:underline flex items-center gap-1">Go to Invoices &rarr;</a>
-                </div>
+                <a id="link-due-all" href="/payments?filter=due" class="bg-amber-50 hover:bg-amber-100 text-amber-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
             </div>
         </div>
 
@@ -129,12 +104,12 @@
                 </div>
                 <div>
                     <h3 class="text-xs font-bold text-gray-900 leading-tight">New Members</h3>
-                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1">Joined this month</p>
+                    <p class="text-[11px] text-gray-400 font-medium leading-tight mt-1" id="stat-new-subtitle">Joined this month</p>
                 </div>
             </div>
             <div class="flex items-center justify-between pt-2">
                 <span class="text-2xl font-black text-emerald-500" id="stat-new-members">0</span>
-                <a href="/members?filter=new" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
+                <a id="link-new-all" href="/members?filter=new" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-500 text-[11px] font-bold px-3 py-1 rounded-lg transition-colors">View All</a>
             </div>
         </div>
     </div>
@@ -142,13 +117,16 @@
     <!-- Row 2: Stats & Dynamic Wave Sparklines with Gradient Fills (4 Cards) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
         <!-- Total Members -->
-        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <a id="link-card-total-members" href="/members" class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col justify-between cursor-pointer group">
             <div>
-                <div class="flex items-center gap-2.5 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-50 text-[#5d5fef] flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-users-viewfinder"></i>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-[#5d5fef] flex items-center justify-center text-sm group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-users-viewfinder"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">Total Members</span>
                     </div>
-                    <span class="text-xs font-bold text-gray-800">Total Members</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-300 group-hover:text-indigo-400 transition-colors"></i>
                 </div>
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1" id="stat-members">0</div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5">All registered members</div>
@@ -168,16 +146,19 @@
                     </svg>
                 </div>
             </div>
-        </div>
+        </a>
 
         <!-- Active Members -->
-        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <a id="link-card-active-members" href="/members?filter=active" class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between cursor-pointer group">
             <div>
-                <div class="flex items-center gap-2.5 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-sm">
-                        <i class="fa-solid fa-user-check"></i>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-800 group-hover:text-blue-600 transition-colors">Active Members</span>
                     </div>
-                    <span class="text-xs font-bold text-gray-800">Active Members</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-300 group-hover:text-blue-400 transition-colors"></i>
                 </div>
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1" id="stat-active-members">0</div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5">Currently active members</div>
@@ -197,10 +178,10 @@
                     </svg>
                 </div>
             </div>
-        </div>
+        </a>
 
-        <!-- Pending Fees (With Hover Tooltip) -->
-        <div class="relative group bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+        <!-- Pending Fees -->
+        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center gap-2.5">
@@ -209,9 +190,7 @@
                         </div>
                         <span class="text-xs font-bold text-gray-800">Pending Fees</span>
                     </div>
-                    <span id="badge-pending-view" class="hidden text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded cursor-help">
-                        <i class="fa-solid fa-info text-[9px] mr-0.5"></i> View
-                    </span>
+                    <a href="/payments?status=pending" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded transition-colors">View All</a>
                 </div>
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1">₹<span id="stat-pending">0</span></div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5" id="stat-pending-subtitle">Total pending amount</div>
@@ -229,26 +208,6 @@
                         <path d="M0,24 C30,22 60,10 80,16 C90,10 95,8 100,5 L100,28 L0,28 Z" fill="url(#grad-pending)"/>
                         <path d="M0,24 C30,22 60,10 80,16 C90,10 95,8 100,5" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                </div>
-            </div>
-
-            <!-- 🌟 Hover Tooltip / Dropdown Popup (Only visible when pending > 0) -->
-            <div id="tooltip-pending-container" class="hidden invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 transform scale-95 group-hover:scale-100 absolute top-full left-0 mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-100/90 p-4 z-50 pointer-events-auto">
-                <div class="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
-                            <i class="fa-solid fa-indian-rupee-sign"></i>
-                        </span>
-                        <span class="text-xs font-extrabold text-gray-900">Pending Amount Breakdown</span>
-                    </div>
-                    <span id="tooltip-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-100">0 Due</span>
-                </div>
-                <div id="tooltip-pending-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 text-xs divide-y divide-gray-50">
-                    <div class="py-2 text-center text-gray-400 text-[11px]">All dues cleared!</div>
-                </div>
-                <div class="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                    <span class="text-gray-400 font-medium">Direct billing actions</span>
-                    <a href="/payments?filter=due" class="text-emerald-600 font-bold hover:underline flex items-center gap-1">Open Billing &rarr;</a>
                 </div>
             </div>
         </div>
@@ -329,7 +288,7 @@
                 </div>
 
                 <!-- Activities List (Dynamic) -->
-                <div class="space-y-4" id="recent-activities-list">
+                <div class="space-y-4 max-h-[250px] overflow-y-auto pr-2 hide-scrollbar" id="recent-activities-list">
                     <div class="text-xs text-gray-400 py-6 text-center">Loading recent activities...</div>
                 </div>
             </div>
@@ -389,7 +348,7 @@
                     <a href="/plans" class="text-xs font-bold text-[#5d5fef] hover:underline">View All</a>
                 </div>
 
-                <div class="space-y-3" id="top-plans-list">
+                <div class="space-y-3 max-h-[150px] overflow-y-auto pr-2 hide-scrollbar" id="top-plans-list">
                     <div class="text-xs text-gray-400 py-3 text-center">No plans found</div>
                 </div>
             </div>
@@ -418,7 +377,7 @@
             </div>
 
             <!-- Dynamic List of Due Members with WhatsApp Buttons -->
-            <div class="space-y-2.5" id="due-reminders-list">
+            <div class="space-y-2.5 max-h-[320px] overflow-y-auto pr-2 hide-scrollbar" id="due-reminders-list">
                 <div class="py-8 text-center text-gray-400 text-xs">
                     <div class="w-6 h-6 border-2 border-[#5d5fef] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     Checking dues...
@@ -563,17 +522,73 @@
                 
                 // Update subtitle for period
                 const periodLabel = data.period_label || 'Total';
+                const isFiltered = !!data.is_date_filtered;
+
                 const subEl = document.getElementById('stat-collected-subtitle');
                 if (subEl) {
-                    subEl.textContent = (periodLabel === 'Total' || periodLabel === 'All Time')
+                    subEl.textContent = (!isFiltered || periodLabel === 'Total' || periodLabel === 'All Time')
                         ? 'Total overall collection' 
                         : `${periodLabel} collection`;
                 }
                 const subPendingEl = document.getElementById('stat-pending-subtitle');
                 if (subPendingEl) {
-                    subPendingEl.textContent = (periodLabel === 'Total' || periodLabel === 'All Time')
+                    subPendingEl.textContent = (!isFiltered || periodLabel === 'Total' || periodLabel === 'All Time')
                         ? 'Total pending amount' 
                         : `${periodLabel} pending`;
+                }
+                const subExpiring = document.getElementById('stat-expiring-subtitle');
+                if (subExpiring) {
+                    subExpiring.textContent = isFiltered ? `Expiring in ${periodLabel}` : 'Members whose plans end soon (3 days)';
+                }
+                const subExpired = document.getElementById('stat-expired-subtitle');
+                const titleExpired = document.getElementById('stat-expired-title');
+                if (subExpired && titleExpired) {
+                    if (isFiltered) {
+                        titleExpired.textContent = 'Expired In Period';
+                        subExpired.textContent = `Plans expired between ${periodLabel}`;
+                    } else {
+                        titleExpired.textContent = 'Expired This Month';
+                        subExpired.textContent = 'Plans that expired recently';
+                    }
+                }
+                const subNew = document.getElementById('stat-new-subtitle');
+                if (subNew) {
+                    subNew.textContent = isFiltered ? `Joined in ${periodLabel}` : 'Joined this month';
+                }
+                const subDue = document.getElementById('stat-due-subtitle');
+                const titleDue = document.getElementById('stat-due-title');
+                if (subDue && titleDue) {
+                    if (isFiltered) {
+                        titleDue.textContent = 'Due In Period';
+                        subDue.textContent = `Pending fees in ${periodLabel}`;
+                    } else {
+                        titleDue.textContent = 'Due This Month';
+                        subDue.textContent = 'Pending fees this month';
+                    }
+                }
+
+                // Update View All and Metric Card Links with Date Parameters
+                const linkExp = document.getElementById('link-expiring-all');
+                const linkExpM = document.getElementById('link-expired-all');
+                const linkDueM = document.getElementById('link-due-all');
+                const linkNewM = document.getElementById('link-new-all');
+                const linkCardTotal = document.getElementById('link-card-total-members');
+                const linkCardActive = document.getElementById('link-card-active-members');
+
+                if (isFiltered && fromDate && toDate) {
+                    if (linkExp) linkExp.href = `/members?filter=expiring&start_date=${fromDate}&end_date=${toDate}`;
+                    if (linkExpM) linkExpM.href = `/members?filter=expired&start_date=${fromDate}&end_date=${toDate}`;
+                    if (linkDueM) linkDueM.href = `/payments?filter=due&start_date=${fromDate}&end_date=${toDate}`;
+                    if (linkNewM) linkNewM.href = `/members?filter=new&start_date=${fromDate}&end_date=${toDate}`;
+                    if (linkCardTotal) linkCardTotal.href = `/members?start_date=${fromDate}&end_date=${toDate}`;
+                    if (linkCardActive) linkCardActive.href = `/members?filter=active&start_date=${fromDate}&end_date=${toDate}`;
+                } else {
+                    if (linkExp) linkExp.href = '/members?filter=expiring';
+                    if (linkExpM) linkExpM.href = '/members?filter=expired_month';
+                    if (linkDueM) linkDueM.href = '/payments?filter=due';
+                    if (linkNewM) linkNewM.href = '/members?filter=new';
+                    if (linkCardTotal) linkCardTotal.href = '/members';
+                    if (linkCardActive) linkCardActive.href = '/members?filter=active';
                 }
 
                 // 1. Top Metrics (100% Dynamic)
