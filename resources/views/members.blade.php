@@ -1103,31 +1103,31 @@
                             ${expiryBadge}
                             ${batchDisplay}
                             
-                            <!-- 🌟 Hover Floating Plan Details Card -->
-                            <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-64 bg-gray-900/95 text-white backdrop-blur-md p-3.5 rounded-2xl shadow-2xl z-50 pointer-events-none border border-gray-700/60 text-xs transition-all duration-200">
-                                <div class="flex items-center justify-between border-b border-gray-700/80 pb-2 mb-2">
-                                    <div class="flex items-center gap-1.5 font-bold text-white text-xs truncate max-w-[150px]">
-                                        <i class="fa-solid fa-dumbbell text-indigo-400"></i>
+                            <!-- 🌟 Hover Floating Plan Details Card - White Theme -->
+                            <div class="hidden group-hover:block absolute left-0 bottom-full mb-2 w-60 bg-white p-3 rounded-xl shadow-lg z-50 pointer-events-none border border-gray-100 text-xs">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+                                    <div class="flex items-center gap-1.5 font-bold text-gray-800 text-xs truncate max-w-[140px]">
+                                        <i class="fa-solid fa-dumbbell text-[#5d5fef]"></i>
                                         <span class="truncate">${plan.plan_group_name || 'Membership'}</span>
                                     </div>
                                     <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${statusClass}">${statusText}</span>
                                 </div>
                                 <div class="space-y-1.5 text-[11px]">
-                                    <div class="flex justify-between items-center text-gray-300">
-                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-plus text-emerald-400"></i> Plan Started:</span>
-                                        <span class="font-bold text-white">${startedText}</span>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-plus text-emerald-500"></i> Plan Started:</span>
+                                        <span class="font-bold text-gray-800">${startedText}</span>
                                     </div>
-                                    <div class="flex justify-between items-center text-gray-300">
-                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-xmark text-rose-400"></i> Plan Expiry:</span>
-                                        <span class="font-bold ${isExpired ? 'text-rose-400' : 'text-emerald-400'}">${expiryText || 'N/A'}</span>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-calendar-xmark text-rose-500"></i> Plan Expiry:</span>
+                                        <span class="font-bold ${isExpired ? 'text-rose-500' : 'text-emerald-600'}">${expiryText || 'N/A'}</span>
                                     </div>
-                                    <div class="flex justify-between items-center text-gray-300">
-                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-clock text-amber-400"></i> Duration:</span>
-                                        <span class="font-bold text-white">${plan.duration_months ? plan.duration_months + ' Month(s)' : 'Custom'}</span>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400 flex items-center gap-1"><i class="fa-regular fa-clock text-amber-500"></i> Duration:</span>
+                                        <span class="font-bold text-gray-800">${plan.duration_months ? plan.duration_months + ' Month(s)' : 'Custom'}</span>
                                     </div>
-                                    <div class="flex justify-between items-center text-gray-300 border-t border-gray-800 pt-1.5 mt-1.5">
+                                    <div class="flex justify-between items-center border-t border-gray-100 pt-1.5 mt-1">
                                         <span class="text-gray-400">Plan Amount:</span>
-                                        <span class="font-black text-amber-300">₹${member.plan_amount || plan.amount || 0}</span>
+                                        <span class="font-black text-[#5d5fef]">₹${member.plan_amount || plan.amount || 0}</span>
                                     </div>
                                 </div>
                             </div>
