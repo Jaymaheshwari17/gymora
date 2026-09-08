@@ -3,8 +3,9 @@
     <!-- Logo -->
     <div class="px-6 pt-7 pb-4 flex items-center gap-3.5">
         <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
-            <img id="sidebar-gym-logo-img" src="{{ asset('flexvora.png') }}" class="w-full h-full object-cover rounded-xl" alt="Flexvora">
-            <i id="sidebar-gym-logo-icon" class="fa-solid fa-dumbbell text-lg" style="display: none;"></i>
+            <img id="sidebar-gym-logo-img" src="" class="w-full h-full object-cover rounded-xl hidden" alt="Gym Logo"
+                 onerror="this.classList.add('hidden'); document.getElementById('sidebar-gym-logo-icon').style.display='';">
+            <i id="sidebar-gym-logo-icon" class="fa-solid fa-dumbbell text-lg"></i>
         </div>
         <div class="flex-1 min-w-0">
             <span id="sidebar-logo-gym-name" class="font-black text-xl tracking-tight text-gray-900 leading-none block truncate">FLEXVORA</span>

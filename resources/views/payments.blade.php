@@ -4,9 +4,8 @@
 <!-- html2pdf for high quality client-side PDF download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- 🌟 Select2 CSS & JS for Fast Searchable Member Dropdown -->
+<!-- 🌟 Select2 CSS for Fast Searchable Member Dropdown -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
 /* Select2 Custom Clean Tailwind Styling */
@@ -168,8 +167,25 @@
                 <h2 class="text-sm font-bold text-gray-900">Payment Transactions & Tax Invoices</h2>
                 <span class="text-xs text-gray-400 font-semibold" id="payment-count-display">Showing 0 records</span>
             </div>
-            <div class="overflow-x-auto px-4 pb-4">
-                <table id="paymentsTable" class="w-full text-left border-collapse">
+            <!-- Table Controls -->
+            <div class="px-6 pt-3 pb-1 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                    Show
+                    <select id="page-size-select" onchange="renderPayments()" class="border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[#5d5fef] cursor-pointer">
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="all">All</option>
+                    </select>
+                    entries
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    <input type="text" id="table-search" oninput="renderPayments()" placeholder="Search..." class="pl-8 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-44 bg-white font-medium">
+                </div>
+            </div>
+            <div class="overflow-x-auto px-4 pb-2">
+                <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50/50 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
                             <th class="px-4 py-3.5">Invoice #</th>
@@ -192,6 +208,11 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <!-- Pagination -->
+            <div class="px-6 py-3 border-t border-gray-100 flex items-center justify-between gap-4">
+                <span class="text-xs text-gray-400 font-medium" id="pagination-info"></span>
+                <div class="flex items-center gap-1" id="pagination-controls"></div>
             </div>
         </div>
 
@@ -669,15 +690,17 @@ async function populateMemberFilterOptions() {
     }
 }
 
-let paymentsDataTable = null;
+let currentPage = 1;
 
 function filterPayments() {
+    currentPage = 1;
     renderPayments();
 }
 
 function renderPayments() {
     const tbody = document.getElementById('payments-tbody');
-    const search = document.getElementById('search-payment').value.toLowerCase().trim();
+    const search = (document.getElementById('table-search')?.value || document.getElementById('search-payment')?.value || '').toLowerCase().trim();
+    const statusFilter = document.getElementById('status-filter')?.value || 'all';
     const dateFilter = document.getElementById('date-filter')?.value || 'all';
     const memberFilter = document.getElementById('member-filter')?.value || 'all';
     
@@ -685,6 +708,18 @@ function renderPayments() {
         // Member Filter
         if (memberFilter !== 'all' && String(p.member_id) !== String(memberFilter)) {
             return false;
+        }
+
+        // Status Filter
+        if (statusFilter !== 'all') {
+            if (statusFilter === 'pending') {
+                // pending = status is 'pending' OR 'partial' (any due amount > 0)
+                if (p.status !== 'pending' && p.status !== 'partial') return false;
+            } else if (statusFilter === 'paid') {
+                if (p.status !== 'paid') return false;
+            } else {
+                if (p.status !== statusFilter) return false;
+            }
         }
 
         // Search Filter
@@ -739,13 +774,23 @@ function renderPayments() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-12 text-center text-gray-400 font-medium">No payment records found.</td></tr>`;
-        if (paymentsDataTable) { paymentsDataTable.destroy(); paymentsDataTable = null; }
+        document.getElementById('pagination-info').textContent = '';
+        document.getElementById('pagination-controls').innerHTML = '';
         return;
     }
 
+    // Pagination
+    const pageSizeEl = document.getElementById('page-size-select');
+    const pageSize = pageSizeEl && pageSizeEl.value !== 'all' ? parseInt(pageSizeEl.value) : filtered.length;
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    const start = (currentPage - 1) * pageSize;
+    const paginated = pageSize >= filtered.length ? filtered : filtered.slice(start, start + pageSize);
+
     // Render HTML
     let html = '';
-    filtered.forEach(p => {
+    paginated.forEach(p => {
         const statusColors = {
             'paid': 'bg-emerald-50 text-emerald-600 border border-emerald-100',
             'partial': 'bg-amber-50 text-amber-600 border border-amber-100',
@@ -815,31 +860,55 @@ function renderPayments() {
     
     tbody.innerHTML = html;
 
-    // Init DataTable (same as members page)
-    if (paymentsDataTable) {
-        paymentsDataTable.destroy();
+    // Update count display
+    document.getElementById('payment-count-display').textContent = `Showing ${filtered.length} records`;
+
+    // Pagination info
+    const showingFrom = filtered.length === 0 ? 0 : start + 1;
+    const showingTo = Math.min(start + pageSize, filtered.length);
+    const paginationInfo = document.getElementById('pagination-info');
+    if (paginationInfo) paginationInfo.textContent = `Showing ${showingFrom}–${showingTo} of ${filtered.length} payments`;
+
+    // Pagination controls
+    const paginationControls = document.getElementById('pagination-controls');
+    if (paginationControls && totalPages > 1) {
+        let pHtml = '';
+        // Prev
+        pHtml += `<button onclick="goToPage(${currentPage - 1})" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+            currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
+        }" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
+        // Pages
+        for (let i = 1; i <= totalPages; i++) {
+            if (totalPages > 7 && i > 2 && i < totalPages - 1 && Math.abs(i - currentPage) > 1) {
+                if (i === 3 || i === totalPages - 2) pHtml += `<span class="px-1 text-gray-400 text-xs">...</span>`;
+                continue;
+            }
+            pHtml += `<button onclick="goToPage(${i})" class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                i === currentPage ? 'bg-[#5d5fef] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+            }">${i}</button>`;
+        }
+        // Next
+        pHtml += `<button onclick="goToPage(${currentPage + 1})" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+            currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 cursor-pointer'
+        }" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
+        paginationControls.innerHTML = pHtml;
+    } else if (paginationControls) {
+        paginationControls.innerHTML = '';
     }
-    paymentsDataTable = $('#paymentsTable').DataTable({
-        pageLength: 25,
-        ordering: true,
-        responsive: true,
-        language: {
-            search: "",
-            searchPlaceholder: "Search...",
-            lengthMenu: "Show _MENU_ entries",
-            info: "Showing _START_ to _END_ of _TOTAL_ payments"
-        },
-        columnDefs: [
-            { orderable: false, targets: [0, 8] }
-        ],
-        order: [[3, 'desc']]
-    });
 }
 
-document.getElementById('search-payment').addEventListener('input', function() {
-    if (paymentsDataTable) {
-        paymentsDataTable.search(this.value).draw();
-    }
+function goToPage(page) {
+    currentPage = page;
+    renderPayments();
+}
+
+// Top search bar (header) also triggers re-render
+const headerSearch = document.getElementById('search-payment');
+if (headerSearch) headerSearch.addEventListener('input', function() {
+    const tableSearch = document.getElementById('table-search');
+    if (tableSearch) tableSearch.value = this.value;
+    currentPage = 1;
+    renderPayments();
 });
 
 // ==========================================
@@ -1237,14 +1306,19 @@ async function deletePayment(id, invNum) {
     }
 }
 
-// Initial fetch
+// Initial fetch — read URL params to pre-set filters
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const filter = urlParams.get('filter');
-    if (filter === 'due' || filter === 'pending') {
-        const statusEl = document.getElementById('status-filter');
-        if (statusEl) statusEl.value = 'pending';
+
+    // Support both ?status=pending and ?filter=pending/due from dashboard links
+    const statusParam = urlParams.get('status') || urlParams.get('filter');
+    const statusEl = document.getElementById('status-filter');
+    if (statusEl && (statusParam === 'pending' || statusParam === 'due')) {
+        statusEl.value = 'pending';
+    } else if (statusEl && statusParam === 'paid') {
+        statusEl.value = 'paid';
     }
+
     fetchPayments();
 });
 </script>
