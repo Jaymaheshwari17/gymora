@@ -63,10 +63,9 @@ class SettingsController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'current_password' => 'required|string',
                 'new_password' => [
                     'required', 'string', 'confirmed',
-                    Password::min(8)->letters()->numbers()->symbols()
+                    Password::min(8)
                 ],
             ]);
 
@@ -75,10 +74,6 @@ class SettingsController extends Controller
             }
 
             $user = $request->user();
-
-            if (!Hash::check($request->current_password, $user->password)) {
-                return $this->errorResponse('Current password does not match.', [], 400);
-            }
 
             $user->update([
                 'password' => Hash::make($request->new_password)

@@ -113,6 +113,9 @@ class DashboardController extends Controller
                     ->sum('paid_amount');
 
                 $collectedFees = max($txSum, $paySum);
+                $totalExpenses = (float) \App\Models\Expense::where('gym_id', $gymId)
+                    ->whereBetween('expense_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->sum('amount');
 
                 $pendingFees = (float) Payment::where('gym_id', $gymId)
                     ->where(function($q) use ($startDate, $endDate) {
@@ -167,6 +170,7 @@ class DashboardController extends Controller
 
                 $collectedFees = (float) Payment::where('gym_id', $gymId)->sum('paid_amount');
                 $pendingFees = (float) Payment::where('gym_id', $gymId)->sum('due_amount');
+                $totalExpenses = (float) \App\Models\Expense::where('gym_id', $gymId)->sum('amount');
 
                 $newMembersThisPeriod = Member::where('gym_id', $gymId)
                     ->where(function($q) use ($startOfMonth, $now) {
@@ -435,6 +439,8 @@ class DashboardController extends Controller
                     'total_staff_trainers' => $totalStaffTrainers,
                     'pending_fees' => $pendingFees,
                     'collected_fees' => $collectedFees,
+                    'total_expenses' => $totalExpenses ?? 0,
+                    'net_income' => ($collectedFees - ($totalExpenses ?? 0)),
                     'members_growth' => $membersGrowth >= 0 ? "+$membersGrowth%" : "$membersGrowth%",
                     'active_growth' => $activeGrowth >= 0 ? "+$activeGrowth%" : "$activeGrowth%",
                     'pending_growth' => $pendingGrowth >= 0 ? "+$pendingGrowth%" : "$pendingGrowth%",

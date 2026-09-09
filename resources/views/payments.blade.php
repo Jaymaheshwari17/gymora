@@ -85,29 +85,30 @@
     <div class="space-y-6 max-w-7xl mx-auto">
 
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="shrink-0">
                 <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Invoices</h1>
                 <p class="text-xs lg:text-sm text-gray-500 mt-1 font-medium">Manage member fees, track due payments, installments, and GST invoices.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
+            <!-- All filters in ONE row, no wrap -->
+            <div class="flex items-center gap-2 flex-nowrap overflow-x-auto">
                 <!-- Search Input -->
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="search-payment" placeholder="Search member, phone or invoice..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-48 sm:w-56 bg-white shadow-2xs font-medium">
+                <div class="relative shrink-0">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    <input type="text" id="search-payment" placeholder="Search member, phone or invoice..." class="pl-8 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-[#5d5fef] outline-none w-44 bg-white shadow-2xs font-medium">
                 </div>
 
-                <!-- 🌟 Filter: Member Filter (Searchable Select2) -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <!-- Member Filter -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
                     <i class="fa-solid fa-user text-[#5d5fef] text-xs"></i>
-                    <select id="member-filter" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                    <select id="member-filter" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer max-w-[140px]">
                         <option value="all">All Members</option>
                         <!-- Populated dynamically -->
                     </select>
                 </div>
 
-                <!-- Filter: Status Filter -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <!-- Status Filter -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
                     <i class="fa-solid fa-filter text-[#5d5fef] text-xs"></i>
                     <select id="status-filter" onchange="fetchPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                         <option value="all">All Status</option>
@@ -116,8 +117,8 @@
                     </select>
                 </div>
 
-                <!-- Filter: Date Period Filter -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <!-- Date Filter -->
+                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs shrink-0">
                     <i class="fa-solid fa-calendar-days text-[#5d5fef] text-xs"></i>
                     <select id="date-filter" onchange="filterPayments()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
                         <option value="all">All Time</option>

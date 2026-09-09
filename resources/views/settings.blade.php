@@ -95,17 +95,6 @@
             
             <form id="password-form" onsubmit="changePassword(event)">
                 <div class="space-y-4">
-                    <!-- Current Password -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
-                        <div class="relative">
-                            <input type="password" id="current_password" name="current_password" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" placeholder="Enter current password">
-                            <button type="button" onclick="togglePassword('current_password', this)" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-                                <i class="fa-regular fa-eye"></i>
-                            </button>
-                        </div>
-                        <p id="error-current_password" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
-                    </div>
 
                     <!-- New Password -->
                     <div>
@@ -391,11 +380,10 @@
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Updating...';
         btn.disabled = true;
 
-        const fields = ['current_password', 'new_password', 'new_password_confirmation'];
+        const fields = ['new_password', 'new_password_confirmation'];
         clearErrors('', fields);
 
         const payload = {
-            current_password: document.getElementById('current_password').value,
             new_password: document.getElementById('new_password').value,
             new_password_confirmation: document.getElementById('new_password_confirmation').value,
         };
@@ -419,8 +407,6 @@
             } else {
                 if (data.errors) {
                     showErrors('', data.errors);
-                } else if (data.message === 'Current password does not match.') {
-                    showErrors('', { current_password: [data.message] });
                 } else {
                     showError(data.message || 'Failed to change password.');
                 }

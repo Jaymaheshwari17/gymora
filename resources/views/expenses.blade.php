@@ -17,10 +17,10 @@
                     <input type="text" id="search-expense" oninput="filterAndRenderExpenses()" placeholder="Search title or notes..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-600 outline-none w-48 sm:w-56 bg-white shadow-2xs font-medium">
                 </div>
 
-                <!-- Category Filter -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                <!-- Category Filter (Select2 Searchable) -->
+                <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-gray-200 shadow-2xs">
                     <i class="fa-solid fa-tags text-indigo-600 text-xs"></i>
-                    <select id="category-filter" onchange="filterAndRenderExpenses()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer">
+                    <select id="category-filter" onchange="filterAndRenderExpenses()" class="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer category-filter-select2">
                         <option value="all">All Categories</option>
                         <option value="RO Water">RO Water & Jars</option>
                         <option value="Cleaning">Cleaning & Sanitation</option>
@@ -104,7 +104,7 @@
 
                 <div class="mb-4">
                     <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-1.5">Category <span class="text-red-500">*</span></label>
-                    <select id="expense_category" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all cursor-pointer">
+                    <select id="expense_category" required class="w-full expense-cat-select2">
                         <option value="RO Water">🚰 RO Water & Drinking Cans</option>
                         <option value="Cleaning">🧹 Cleaning & Sanitation (Housekeeping)</option>
                         <option value="Maintenance">🔧 Equipment Maintenance & Repair</option>
@@ -254,11 +254,15 @@ function openExpenseModal() {
     document.getElementById('modal-title-text').textContent = 'Add New Expense';
     document.getElementById('expense-form').reset();
     document.getElementById('expense_date').valueAsDate = new Date();
-    
+    // Reset Select2
+    if (typeof $.fn.select2 === 'function') {
+        $('#expense_category').val('RO Water').trigger('change');
+    }
+
     const modal = document.getElementById('expense-modal');
     const content = document.getElementById('expense-modal-content');
     modal.classList.remove('hidden');
-    
+
     setTimeout(() => {
         content.classList.remove('scale-95', 'opacity-0');
         content.classList.add('scale-100', 'opacity-100');
@@ -281,7 +285,7 @@ function editExpense(id) {
     }
     document.getElementById('expense_date').value = dateStr;
     
-    // Match category
+    // Match category with Select2
     const catSelect = document.getElementById('expense_category');
     let matched = false;
     for (let i = 0; i < catSelect.options.length; i++) {
@@ -292,6 +296,9 @@ function editExpense(id) {
         }
     }
     if (!matched) catSelect.value = 'Other';
+    if (typeof $.fn.select2 === 'function') {
+        $('#expense_category').trigger('change');
+    }
 
     document.getElementById('expense_desc').value = ex.description || '';
     
@@ -382,7 +389,57 @@ async function deleteExpense(id) {
     });
 }
 
-document.addEventListener('DOMContentLoaded', fetchExpenses);
+document.addEventListener('DOMContentLoaded', function() {
+    fetchExpenses();
+
+    // Select2 for modal category
+    if (typeof $.fn.select2 === 'function') {
+        $('#expense_category').select2({
+            placeholder: '🔍 Search category...',
+            allowClear: false,
+            width: '100%',
+            dropdownAutoWidth: false,
+            dropdownParent: $('#expense-modal')
+        });
+
+        // Listing filter Select2
+        $('#category-filter').select2({
+            placeholder: '📂 All Categories',
+            allowClear: false,
+            minimumResultsForSearch: 0,
+            width: '180px',
+            dropdownAutoWidth: true
+        }).on('change.select2', function() {
+            filterAndRenderExpenses();
+        });
+    }
+});
 </script>
+<style>
+/* Fix for Select2 dropdown visibility in Tailwind */
+.select2-container--default .select2-results__option {
+    color: #374151 !important; /* text-gray-700 */
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 8px 12px !important;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #4f46e5 !important; /* bg-indigo-600 */
+    color: white !important;
+}
+.select2-dropdown {
+    border-color: #e5e7eb !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden !important;
+    z-index: 999999 !important;
+}
+.select2-search__field {
+    border-radius: 0.5rem !important;
+    border: 1px solid #e5e7eb !important;
+    font-size: 12px !important;
+    color: #374151 !important;
+}
+</style>
 @endpush
 @endsection

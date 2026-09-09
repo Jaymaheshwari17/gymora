@@ -114,26 +114,35 @@
         </div>
     </div>
 
-    <!-- Row 2: Stats & Dynamic Wave Sparklines with Gradient Fills (4 Cards) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
-        <!-- Total Members -->
+    <!-- Row 2: Stats & Dynamic Wave Sparklines (5 Cards: Members+Active Combined, Pending, Collected, Net Income) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mb-6">
+        <!-- Members Combined Card: Total | Active -->
         <a id="link-card-total-members" href="/members" class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col justify-between cursor-pointer group">
             <div>
                 <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2.5">
+                    <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-lg bg-indigo-50 text-[#5d5fef] flex items-center justify-center text-sm group-hover:scale-110 transition-transform">
-                            <i class="fa-solid fa-users-viewfinder"></i>
+                            <i class="fa-solid fa-users"></i>
                         </div>
-                        <span class="text-xs font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">Total Members</span>
+                        <span class="text-xs font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">Members</span>
                     </div>
                     <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-300 group-hover:text-indigo-400 transition-colors"></i>
                 </div>
-                <div class="text-3xl font-black text-gray-900 tracking-tight mt-1" id="stat-members">0</div>
-                <div class="text-[11px] text-gray-400 font-medium mt-0.5">All registered members</div>
+                <!-- Pipeline: Total | Active -->
+                <div class="flex items-center mt-1">
+                    <div class="flex-1 text-center">
+                        <div class="text-2xl font-black text-gray-900 tracking-tight" id="stat-members">0</div>
+                        <div class="text-[10px] text-gray-400 font-semibold mt-0.5">Total</div>
+                    </div>
+                    <div class="w-px h-10 bg-gray-200 mx-1"></div>
+                    <div class="flex-1 text-center">
+                        <div class="text-2xl font-black text-blue-500 tracking-tight" id="stat-active-members">0</div>
+                        <div class="text-[10px] text-gray-400 font-semibold mt-0.5">Active</div>
+                    </div>
+                </div>
             </div>
-            <!-- Dynamic Sparkline -->
-            <div class="mt-4">
-                <div class="w-full h-9" id="sparkline-members-container">
+            <div class="mt-3">
+                <div class="w-full h-8" id="sparkline-members-container">
                     <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id="grad-members" x1="0" y1="0" x2="0" y2="1">
@@ -143,38 +152,6 @@
                         </defs>
                         <path d="M0,22 C20,18 40,24 60,12 C80,18 90,8 100,5 L100,28 L0,28 Z" fill="url(#grad-members)"/>
                         <path d="M0,22 C20,18 40,24 60,12 C80,18 90,8 100,5" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-            </div>
-        </a>
-
-        <!-- Active Members -->
-        <a id="link-card-active-members" href="/members?filter=active" class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-blue-200 transition-all flex flex-col justify-between cursor-pointer group">
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center text-sm group-hover:scale-110 transition-transform">
-                            <i class="fa-solid fa-user-check"></i>
-                        </div>
-                        <span class="text-xs font-bold text-gray-800 group-hover:text-blue-600 transition-colors">Active Members</span>
-                    </div>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-300 group-hover:text-blue-400 transition-colors"></i>
-                </div>
-                <div class="text-3xl font-black text-gray-900 tracking-tight mt-1" id="stat-active-members">0</div>
-                <div class="text-[11px] text-gray-400 font-medium mt-0.5">Currently active members</div>
-            </div>
-            <!-- Dynamic Sparkline -->
-            <div class="mt-4">
-                <div class="w-full h-9" id="sparkline-active-container">
-                    <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id="grad-active" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
-                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M0,20 C25,12 50,22 75,10 C85,6 95,12 100,6 L100,28 L0,28 Z" fill="url(#grad-active)"/>
-                        <path d="M0,20 C25,12 50,22 75,10 C85,6 95,12 100,6" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
@@ -195,7 +172,6 @@
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1">₹<span id="stat-pending">0</span></div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5" id="stat-pending-subtitle">Total pending amount</div>
             </div>
-            <!-- Dynamic Sparkline -->
             <div class="mt-4">
                 <div class="w-full h-9" id="sparkline-pending-container">
                     <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
@@ -224,7 +200,6 @@
                 <div class="text-3xl font-black text-gray-900 tracking-tight mt-1">₹<span id="stat-collected">0</span></div>
                 <div class="text-[11px] text-gray-400 font-medium mt-0.5" id="stat-collected-subtitle">Total overall collection</div>
             </div>
-            <!-- Dynamic Sparkline -->
             <div class="mt-4">
                 <div class="w-full h-9" id="sparkline-collected-container">
                     <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
@@ -236,6 +211,62 @@
                         </defs>
                         <path d="M0,22 C20,16 40,8 60,18 C80,10 90,6 100,3 L100,28 L0,28 Z" fill="url(#grad-collected)"/>
                         <path d="M0,22 C20,16 40,8 60,18 C80,10 90,6 100,3" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Expenses -->
+        <div class="bg-white border border-gray-100/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-2.5 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800">Total Expenses</span>
+                </div>
+                <div class="text-3xl font-black text-rose-500 tracking-tight mt-1">₹<span id="stat-total-expenses">0</span></div>
+                <div class="text-[11px] text-gray-400 font-medium mt-0.5">Overall expenses recorded</div>
+            </div>
+            <div class="mt-4">
+                <div class="w-full h-9">
+                    <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="grad-expenses" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,18 C20,22 40,14 60,20 C80,16 90,10 100,8 L100,28 L0,28 Z" fill="url(#grad-expenses)"/>
+                        <path d="M0,18 C20,22 40,14 60,20 C80,16 90,10 100,8" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Income -->
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-2.5 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                    <span class="text-xs font-bold text-gray-800">Net Income</span>
+                </div>
+                <div class="text-3xl font-black text-emerald-600 tracking-tight mt-1">₹<span id="stat-net-income">0</span></div>
+                <div class="text-[11px] text-emerald-600/70 font-medium mt-0.5">Collected − Expenses</div>
+            </div>
+            <div class="mt-4">
+                <div class="w-full h-9">
+                    <svg class="w-full h-full" viewBox="0 0 100 28" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="grad-net" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#10b981" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,20 C25,16 50,8 75,12 C88,8 95,5 100,3 L100,28 L0,28 Z" fill="url(#grad-net)"/>
+                        <path d="M0,20 C25,16 50,8 75,12 C88,8 95,5 100,3" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
@@ -597,6 +628,8 @@
                 animateValue("stat-active-members", 0, top.active_members || 0, 800); 
                 animateValue("stat-collected", 0, top.collected_fees || 0, 800);
                 animateValue("stat-pending", 0, top.pending_fees || 0, 800);
+                animateValue("stat-net-income", 0, Math.max(0, top.net_income || 0), 800);
+                animateValue("stat-total-expenses", 0, top.total_expenses || 0, 800);
 
                 // Dynamic Sparklines Rendering (with smooth gradients)
                 const sparklines = top.sparklines || {};
@@ -881,49 +914,18 @@
                 ? 'bg-gradient-to-r from-amber-500 to-emerald-500'
                 : 'bg-[#5d5fef]';
 
-            const priceFormatted = p.formatted_amount || ('₹' + Number(p.amount || 0).toLocaleString('en-IN'));
+            const priceFormatted = p.formatted_amount || ('\u20b9' + Number(p.amount || 0).toLocaleString('en-IN'));
             const durationText = p.duration_label || (p.duration_months ? `${p.duration_months} Mo` : 'Plan');
             const groupText = p.group_name || p.name || 'Membership';
-            const salesFormatted = p.formatted_sales || ('₹' + Number(p.total_sales || 0).toLocaleString('en-IN'));
+            const salesFormatted = p.formatted_sales || ('\u20b9' + Number(p.total_sales || 0).toLocaleString('en-IN'));
+
+            const tooltipData = JSON.stringify({groupText, durationText, priceFormatted, members: p.members, percentage: p.percentage, salesFormatted, isTop}).replace(/"/g, '&quot;');
 
             html += `
-                <div class="relative group p-2.5 -mx-1 rounded-xl hover:bg-gray-50/80 transition-all cursor-pointer">
-                    <!-- Rich Interactive Hover Tooltip -->
-                    <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:flex flex-col gap-1.5 w-64 bg-gray-950/95 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl z-50 pointer-events-none text-xs border border-gray-800">
-                        <div class="flex items-center justify-between border-b border-gray-800 pb-1.5">
-                            <span class="font-extrabold text-white text-xs flex items-center gap-1.5">
-                                <i class="fa-solid fa-tag text-[#5d5fef]"></i>
-                                ${groupText} (${durationText})
-                            </span>
-                            ${isTop ? '<span class="text-[9px] bg-amber-500/20 text-amber-400 font-black px-1.5 py-0.5 rounded border border-amber-500/40">🔥 High Demand</span>' : ''}
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                            <div>
-                                <span class="text-gray-400 block text-[9px] font-semibold">⏱️ DURATION</span>
-                                <span class="font-bold text-indigo-300">${durationText}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block text-[9px] font-semibold">💰 PLAN FEE</span>
-                                <span class="font-bold text-emerald-400">${priceFormatted}</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block text-[9px] font-semibold">👥 ENROLLED</span>
-                                <span class="font-bold text-white">${p.members} Members (${p.percentage}%)</span>
-                            </div>
-                            <div>
-                                <span class="text-gray-400 block text-[9px] font-semibold">💵 TOTAL SALES</span>
-                                <span class="font-bold text-amber-300">${salesFormatted}</span>
-                            </div>
-                        </div>
-                        <div class="text-[10px] text-gray-300 pt-1.5 border-t border-gray-800 flex items-center gap-1 font-medium">
-                            <i class="fa-solid fa-chart-line text-emerald-400 text-[10px]"></i>
-                            ${isTop ? 'Highest converting plan in your gym.' : 'Active gym membership option.'}
-                        </div>
-                        <!-- Tooltip arrow -->
-                        <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-950/95"></div>
-                    </div>
+                <div class="p-2.5 -mx-1 rounded-xl hover:bg-gray-50/80 transition-all cursor-pointer"
+                    onmouseenter="showPlanTooltip(event, '${tooltipData}')"
+                    onmouseleave="hidePlanTooltip()">
 
-                    <!-- Card Header Row -->
                     <div class="flex items-center justify-between mb-1.5 text-xs">
                         <div class="flex items-center gap-2 min-w-0">
                             ${rankBadge}
@@ -933,12 +935,11 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0 pl-2">
-                            ${isTop ? '<span class="hidden sm:inline-flex bg-amber-50 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-200">🔥 High Demand</span>' : ''}
+                            ${isTop ? '<span class="bg-amber-50 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-200">\uD83D\uDD25 High Demand</span>' : ''}
                             <span class="font-black text-emerald-600 text-xs">${priceFormatted}</span>
                         </div>
                     </div>
 
-                    <!-- Progress Bar & Member Count -->
                     <div class="flex items-center justify-between text-[10px] text-gray-400 font-medium mb-1">
                         <span>${p.members} active member(s)</span>
                         <span class="font-bold text-gray-600">${p.percentage}%</span>
@@ -992,7 +993,7 @@
                         <a href="${waLink}" target="_blank" class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-[#25D366] text-emerald-600 hover:text-white flex items-center justify-center text-xs transition-all shadow-2xs" title="Send WhatsApp Reminder">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                         </a>
-                        <a href="/payments" class="px-2.5 py-1 bg-[#5d5fef]/10 hover:bg-[#5d5fef] text-[#5d5fef] hover:text-white rounded-lg text-xs font-bold transition-all">
+                        <a href="/payments?member_id=${item.member_id || ''}" class="px-2.5 py-1 bg-[#5d5fef]/10 hover:bg-[#5d5fef] text-[#5d5fef] hover:text-white rounded-lg text-xs font-bold transition-all">
                             Pay
                         </a>
                     </div>
@@ -1089,6 +1090,56 @@
     document.addEventListener('DOMContentLoaded', function() {
         fetchDashboardStats();
     });
+
+    // Global fixed-position Plan Tooltip (works regardless of parent overflow)
+    function showPlanTooltip(event, dataStr) {
+        let data;
+        try { data = JSON.parse(dataStr.replace(/&quot;/g, '"')); } catch(e) { return; }
+
+        let tt = document.getElementById('plan-global-tooltip');
+        if (!tt) {
+            tt = document.createElement('div');
+            tt.id = 'plan-global-tooltip';
+            tt.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;width:256px;display:none;';
+            tt.className = 'flex flex-col gap-1.5 bg-gray-950/95 text-white p-3 rounded-xl shadow-2xl text-xs border border-gray-800';
+            document.body.appendChild(tt);
+        }
+
+        tt.innerHTML = `
+            <div class="flex items-center justify-between border-b border-gray-800 pb-1.5">
+                <span class="font-extrabold text-white text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-tag" style="color:#5d5fef"></i>
+                    ${data.groupText} (${data.durationText})
+                </span>
+                ${data.isTop ? '<span style="font-size:9px;background:rgba(245,158,11,0.2);color:#fbbf24;font-weight:900;padding:2px 6px;border-radius:4px;border:1px solid rgba(245,158,11,0.4)">🔥 High Demand</span>' : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:4px;font-size:11px">
+                <div><span style="color:#9ca3af;display:block;font-size:9px;font-weight:600">⏱️ DURATION</span><span style="font-weight:700;color:#a5b4fc">${data.durationText}</span></div>
+                <div><span style="color:#9ca3af;display:block;font-size:9px;font-weight:600">💰 PLAN FEE</span><span style="font-weight:700;color:#34d399">${data.priceFormatted}</span></div>
+                <div><span style="color:#9ca3af;display:block;font-size:9px;font-weight:600">👥 ENROLLED</span><span style="font-weight:700;color:#fff">${data.members} Members (${data.percentage}%)</span></div>
+                <div><span style="color:#9ca3af;display:block;font-size:9px;font-weight:600">💵 TOTAL SALES</span><span style="font-weight:700;color:#fcd34d">${data.salesFormatted}</span></div>
+            </div>
+            <div style="font-size:10px;color:#d1d5db;padding-top:6px;border-top:1px solid #374151;display:flex;align-items:center;gap:4px">
+                <i class="fa-solid fa-chart-line" style="color:#34d399;font-size:10px"></i>
+                ${data.isTop ? 'Highest converting plan in your gym.' : 'Active gym membership option.'}
+            </div>
+        `;
+
+        const rect = event.currentTarget.getBoundingClientRect();
+        let left = rect.left + rect.width / 2 - 128;
+        let top = rect.top - 8;
+        if (left < 8) left = 8;
+        if (left + 256 > window.innerWidth - 8) left = window.innerWidth - 264;
+        tt.style.left = left + 'px';
+        tt.style.top = top + 'px';
+        tt.style.transform = 'translateY(-100%)';
+        tt.style.display = 'flex';
+    }
+
+    function hidePlanTooltip() {
+        const tt = document.getElementById('plan-global-tooltip');
+        if (tt) tt.style.display = 'none';
+    }
 </script>
 @endpush
 @endsection
