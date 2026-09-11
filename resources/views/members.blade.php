@@ -1,4 +1,4 @@
-﻿@extends('layouts.dashboard-layout')
+@extends('layouts.dashboard-layout')
 
 @section('dashboard-content')
 
@@ -413,19 +413,12 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
-                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
-                        </div>
-                        <div id="status-container" style="display: none;">
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Account Status</label>
-                            <select id="status" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
+                    <div class="mt-6" id="status-container" style="display: none;">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Account Status</label>
+                        <select id="status" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                 </div>
 
@@ -436,13 +429,18 @@
                     </h4>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div id="plan_select_container" class="col-span-1 md:col-span-2">
+                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Plan <span class="text-red-500">*</span></label>
                             <select id="plan_id" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="calculateTotal()">
                                 <option value="">Select a plan...</option>
                                 <!-- Plans will load here -->
                             </select>
                             <p id="error-plan_id" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
                     </div>
 
@@ -1525,7 +1523,6 @@
         const select      = document.getElementById('renew_plan_id');
         const startDateVal = document.getElementById('renew_start_date').value || todayIsoString;
         const expiryTextEl = document.getElementById('renew-new-expiry-text');
-        const isUpgrade = document.getElementById('type-upgrade').checked;
 
         if (!select.value) {
             document.getElementById('renew_paid').value = '';
@@ -1669,16 +1666,7 @@
             }
         }
 
-        let newStep = currentStep + direction;
-
-        if (isEditing) {
-            if (direction === 1 && currentStep === 2) {
-                newStep = 4;
-            } else if (direction === -1 && currentStep === 4) {
-                newStep = 2;
-            }
-        }
-
+        const newStep = currentStep + direction;
         if (newStep >= 1 && newStep <= totalSteps) {
             currentStep = newStep;
             updateWizardUI();
@@ -1698,42 +1686,30 @@
             }
         }
 
-        // Update indicators
-        let visibleSteps = isEditing ? [1, 2, 4] : [1, 2, 3, 4];
-        let visibleIndex = visibleSteps.indexOf(currentStep);
-
         // Update progress bar
-        const progressPercentage = (visibleIndex / (visibleSteps.length - 1)) * 100;
+        const progressPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
         document.getElementById('progress-line').style.width = `${progressPercentage}%`;
 
+        // Update indicators
         document.querySelectorAll('.step-indicator').forEach(indicator => {
             const step = parseInt(indicator.getAttribute('data-step'));
             const circle = indicator.querySelector('div');
             const text = indicator.querySelector('span');
             
-            if (isEditing && step === 3) {
-                indicator.style.display = 'none';
-                return;
-            } else {
-                indicator.style.display = 'flex';
-            }
-            
-            let sIndex = visibleSteps.indexOf(step);
-            
-            if (sIndex < visibleIndex) {
+            if (step < currentStep) {
                 // Completed
                 circle.className = 'w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold shadow-md shadow-green-900/20 border-4 border-white transition-colors duration-300';
                 circle.innerHTML = '<i class="fa-solid fa-check"></i>';
                 text.className = 'text-xs font-bold text-green-500 mt-2 absolute -bottom-6 w-24 text-center';
-            } else if (sIndex === visibleIndex) {
+            } else if (step === currentStep) {
                 // Current
                 circle.className = 'w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/20 border-4 border-white transition-colors duration-300 transform scale-110';
-                circle.innerHTML = step === 4 && isEditing ? '3' : step;
+                circle.innerHTML = step;
                 text.className = 'text-xs font-bold text-indigo-600 mt-2 absolute -bottom-6 w-24 text-center';
             } else {
                 // Pending
                 circle.className = 'w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center font-bold border-4 border-white transition-colors duration-300';
-                circle.innerHTML = step === 4 && isEditing ? '3' : step;
+                circle.innerHTML = step;
                 text.className = 'text-xs font-bold text-gray-400 mt-2 absolute -bottom-6 w-24 text-center';
             }
         });
