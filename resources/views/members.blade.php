@@ -1409,6 +1409,16 @@
     let todayIsoString = '';
     let currentNetDifference = 0;
 
+    function showPlanActiveWarning(memberName, expiryStr, plan) {
+        Swal.fire({
+            title: 'Plan is still active!',
+            html: `<b>${memberName}</b>'s current plan is active until <b>${expiryStr}</b>.<br><br>Wait for the plan to expire or be closer to expiry before renewing.`,
+            icon: 'info',
+            confirmButtonColor: '#4f46e5',
+            confirmButtonText: 'Okay, got it!'
+        });
+    }
+
     function openRenewModal(id) {
         const member = membersData.find(m => m.id === id);
         if (!member) return;
