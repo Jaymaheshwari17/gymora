@@ -1,4 +1,4 @@
-@extends('layouts.dashboard-layout')
+﻿@extends('layouts.dashboard-layout')
 
 @section('dashboard-content')
 
@@ -413,12 +413,19 @@
                         </div>
                     </div>
                     
-                    <div class="mt-6" id="status-container" style="display: none;">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Account Status</label>
-                        <select id="status" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
+                        </div>
+                        <div id="status-container" style="display: none;">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Account Status</label>
+                            <select id="status" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -429,18 +436,13 @@
                     </h4>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
+                        <div id="plan_select_container" class="col-span-1 md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Plan <span class="text-red-500">*</span></label>
                             <select id="plan_id" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="calculateTotal()">
                                 <option value="">Select a plan...</option>
                                 <!-- Plans will load here -->
                             </select>
                             <p id="error-plan_id" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
-                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
                     </div>
 
@@ -1477,39 +1479,41 @@
         calculateRenewAmounts(true);
     }
 
-    // ─── Warning popup: Plan still active, cannot renew yet ───
-    function showPlanActiveWarning(memberName, expiryStr, plan) {
-        const existingPopup = document.getElementById('plan-active-warning-popup');
-        if (existingPopup) existingPopup.remove();
+    function handleActionTypeChange() {
+        const isUpgrade = document.getElementById('type-upgrade').checked;
+        const startDateContainer = document.getElementById('renew-start-date-container');
+        const hintEl = document.getElementById('action-type-hint');
+        const prevAdjustedRow = document.getElementById('row-prev-adjusted');
+        const diffLabel = document.getElementById('label-diff-collect');
+        const upgradeLabel = document.getElementById('type-upgrade-label');
+        const renewLabel = document.getElementById('type-renew-label');
 
-        const popup = document.createElement('div');
-        popup.id = 'plan-active-warning-popup';
-        popup.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
-        popup.innerHTML = `
-            <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="document.getElementById('plan-active-warning-popup').remove()"></div>
-            <div class="relative bg-white rounded-2xl shadow-2xl border border-amber-100 max-w-sm w-full p-6 text-center animate-bounce-in">
-                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-calendar-check text-2xl text-amber-500"></i>
-                </div>
-                <h3 class="text-base font-extrabold text-gray-900 mb-1">Plan Still Active!</h3>
-                <p class="text-sm text-gray-500 font-medium mb-1">
-                    <span class="font-bold text-gray-800">${memberName}</span>'s plan is still active.
-                </p>
-                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 my-4">
-                    <div class="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Expires On</div>
-                    <div class="text-lg font-black text-amber-800">${expiryStr}</div>
-                    <div class="text-xs text-amber-600 mt-1 font-medium">${plan?.plan_group_name || ''} (${plan?.duration_months || ''}M)</div>
-                </div>
-                <p class="text-xs text-gray-400 font-medium mb-5">
-                    ⏳ You can only renew this plan after it has expired.
-                </p>
-                <button onclick="document.getElementById('plan-active-warning-popup').remove()"
-                    class="w-full py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-sm font-bold rounded-xl transition">
-                    Okay, Got It!
-                </button>
-            </div>
-        `;
-        document.body.appendChild(popup);
+        if (isUpgrade) {
+            startDateContainer.classList.add('hidden');
+            prevAdjustedRow.classList.remove('hidden');
+            diffLabel.textContent = 'Difference to Collect (Adjusted):';
+            hintEl.innerHTML = `💡 <strong>Upgrade / Change Mode:</strong> Previously paid amount (₹${activeMemberRecentPaid.toLocaleString('en-IN')}) will be deducted so only the difference is charged!`;
+            upgradeLabel.className = 'flex items-center gap-2 p-2.5 bg-indigo-50/90 border-2 border-indigo-400 rounded-xl text-xs font-bold cursor-pointer text-indigo-900 shadow-2xs';
+            renewLabel.className = 'flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer text-gray-600 hover:bg-gray-100';
+        } else {
+            startDateContainer.classList.remove('hidden');
+            prevAdjustedRow.classList.add('hidden');
+            diffLabel.textContent = 'Total Amount to Collect:';
+            hintEl.innerHTML = `💡 <strong>Next Cycle Renewal:</strong> Creates a fresh new payment for the next upcoming period.`;
+            renewLabel.className = 'flex items-center gap-2 p-2.5 bg-indigo-50/90 border-2 border-indigo-400 rounded-xl text-xs font-bold cursor-pointer text-indigo-900 shadow-2xs';
+            upgradeLabel.className = 'flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer text-gray-600 hover:bg-gray-100';
+        }
+
+        calculateRenewAmounts(true);
+    }
+
+    function handleRenewModeChange() {
+        if (document.getElementById('opt-extend').checked) {
+            document.getElementById('renew_start_date').value = activeMemberCalculatedExpiry;
+        } else {
+            document.getElementById('renew_start_date').value = todayIsoString;
+        }
+        calculateRenewAmounts(true);
     }
 
 
@@ -1521,12 +1525,13 @@
         const select      = document.getElementById('renew_plan_id');
         const startDateVal = document.getElementById('renew_start_date').value || todayIsoString;
         const expiryTextEl = document.getElementById('renew-new-expiry-text');
+        const isUpgrade = document.getElementById('type-upgrade').checked;
 
         if (!select.value) {
-            if (updatePaidInput) document.getElementById('renew_paid').value = '';
+            document.getElementById('renew_paid').value = '';
             expiryTextEl.textContent = 'Select plan to preview';
             document.getElementById('calc-new-price').textContent = '0';
-            document.getElementById('calc-net-diff').textContent  = '0';
+            document.getElementById('calc-net-diff').textContent = '0';
             currentNetDifference = 0;
             calculateDueLive();
             return;
@@ -1664,7 +1669,16 @@
             }
         }
 
-        const newStep = currentStep + direction;
+        let newStep = currentStep + direction;
+
+        if (isEditing) {
+            if (direction === 1 && currentStep === 2) {
+                newStep = 4;
+            } else if (direction === -1 && currentStep === 4) {
+                newStep = 2;
+            }
+        }
+
         if (newStep >= 1 && newStep <= totalSteps) {
             currentStep = newStep;
             updateWizardUI();
@@ -1684,30 +1698,42 @@
             }
         }
 
+        // Update indicators
+        let visibleSteps = isEditing ? [1, 2, 4] : [1, 2, 3, 4];
+        let visibleIndex = visibleSteps.indexOf(currentStep);
+
         // Update progress bar
-        const progressPercentage = ((currentStep - 1) / (totalSteps - 1)) * 100;
+        const progressPercentage = (visibleIndex / (visibleSteps.length - 1)) * 100;
         document.getElementById('progress-line').style.width = `${progressPercentage}%`;
 
-        // Update indicators
         document.querySelectorAll('.step-indicator').forEach(indicator => {
             const step = parseInt(indicator.getAttribute('data-step'));
             const circle = indicator.querySelector('div');
             const text = indicator.querySelector('span');
             
-            if (step < currentStep) {
+            if (isEditing && step === 3) {
+                indicator.style.display = 'none';
+                return;
+            } else {
+                indicator.style.display = 'flex';
+            }
+            
+            let sIndex = visibleSteps.indexOf(step);
+            
+            if (sIndex < visibleIndex) {
                 // Completed
                 circle.className = 'w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold shadow-md shadow-green-900/20 border-4 border-white transition-colors duration-300';
                 circle.innerHTML = '<i class="fa-solid fa-check"></i>';
                 text.className = 'text-xs font-bold text-green-500 mt-2 absolute -bottom-6 w-24 text-center';
-            } else if (step === currentStep) {
+            } else if (sIndex === visibleIndex) {
                 // Current
                 circle.className = 'w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-600/20 border-4 border-white transition-colors duration-300 transform scale-110';
-                circle.innerHTML = step;
+                circle.innerHTML = step === 4 && isEditing ? '3' : step;
                 text.className = 'text-xs font-bold text-indigo-600 mt-2 absolute -bottom-6 w-24 text-center';
             } else {
                 // Pending
                 circle.className = 'w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center font-bold border-4 border-white transition-colors duration-300';
-                circle.innerHTML = step;
+                circle.innerHTML = step === 4 && isEditing ? '3' : step;
                 text.className = 'text-xs font-bold text-gray-400 mt-2 absolute -bottom-6 w-24 text-center';
             }
         });
@@ -1812,8 +1838,8 @@
             // Determine which step the error belongs to in order to navigate back
             if (!firstStepWithError) {
                 if (['name', 'mobile', 'email', 'photo', 'gender', 'dob'].includes(field)) firstStepWithError = 1;
-                else if (['password'].includes(field)) firstStepWithError = 2;
-                else if (['plan_id', 'joining_date', 'discount', 'amount_received'].includes(field)) firstStepWithError = 3;
+                else if (['password', 'joining_date', 'status'].includes(field)) firstStepWithError = 2;
+                else if (['plan_id', 'discount', 'amount_received'].includes(field)) firstStepWithError = 3;
                 else if (['batch_id', 'trainer_id'].includes(field)) firstStepWithError = 4;
                 else firstStepWithError = 1; // fallback
             }
@@ -1837,13 +1863,15 @@
         form.append('email', document.getElementById('email').value);
         form.append('gender', document.getElementById('gender').value);
         form.append('dob', document.getElementById('dob').value);
-        form.append('plan_id', document.getElementById('plan_id').value);
         form.append('joining_date', document.getElementById('joining_date').value);
-        form.append('discount', document.getElementById('discount').value);
         form.append('batch_id', document.getElementById('batch_id').value);
         form.append('trainer_id', document.getElementById('trainer_id').value);
-        form.append('amount_received', document.getElementById('amount_received').value);
-        if (isEditing) {
+        
+        if (!isEditing) {
+            form.append('plan_id', document.getElementById('plan_id').value);
+            form.append('discount', document.getElementById('discount').value);
+            form.append('amount_received', document.getElementById('amount_received').value);
+        } else {
             form.append('status', document.getElementById('status').value);
         }
 
