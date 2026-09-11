@@ -1,9 +1,7 @@
 @extends('layouts.dashboard-layout')
 
 @section('dashboard-content')
-<!-- Select2 CSS & JS for Searchable Member Dropdown -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
 <style>
 /* Select2 Custom Clean Tailwind Styling */
@@ -173,9 +171,9 @@
     <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[92vh]">
         
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex justify-between items-center">
             <div>
-                <h3 class="text-base font-extrabold text-gray-900">Renew / Extend Plan</h3>
+                <h3 class="text-base font-extrabold text-gray-900">🔄 Renew Plan</h3>
                 <p class="text-xs text-gray-500 font-medium mt-0.5" id="renew-member-name">Member Name</p>
             </div>
             <button onclick="closeRenewModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors">
@@ -189,112 +187,78 @@
                 <input type="hidden" id="renew_member_id">
                 
                 <div class="space-y-4">
+
                     <!-- Current Plan info -->
                     <div class="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl text-indigo-900 text-xs">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold uppercase tracking-wider text-[10px] text-indigo-600">Current Plan & Paid</span>
-                            <span id="renew-current-badge" class="font-black px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-700">Active</span>
+                            <span class="font-bold uppercase tracking-wider text-[10px] text-indigo-600">Current / Expiring Plan</span>
+                            <span id="renew-current-badge" class="font-black px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700">Expired</span>
                         </div>
-                        <div class="font-extrabold text-sm text-gray-900" id="renew-current-plan">3 Months Cardio</div>
-                        <div class="flex items-center justify-between text-gray-500 font-medium text-xs mt-0.5">
-                            <span id="renew-current-validity">Valid: 01 Jan 2026 to 01 Apr 2026</span>
-                            <span class="font-bold text-emerald-600">Paid: ₹<span id="renew-current-paid-amount">0</span></span>
-                        </div>
+                        <div class="font-extrabold text-sm text-gray-900" id="renew-current-plan">—</div>
+                        <div class="text-gray-500 font-medium text-xs mt-0.5" id="renew-current-validity">—</div>
                     </div>
 
-                    <!-- Action Type Choice -->
+                    <!-- New Plan Start Date -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Action Mode</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center gap-2 p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-indigo-100 text-indigo-900" id="type-upgrade-label">
-                                <input type="radio" name="renew_action_type" value="upgrade" id="type-upgrade" checked onchange="handleActionTypeChange()" class="accent-[#5d5fef]">
-                                <span>🔁 Upgrade / Change Plan</span>
-                            </label>
-                            <label class="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-100 text-gray-700" id="type-renew-label">
-                                <input type="radio" name="renew_action_type" value="renew" id="type-renew" onchange="handleActionTypeChange()" class="accent-[#5d5fef]">
-                                <span>🔄 Next Cycle Renewal</span>
-                            </label>
-                        </div>
-                        <p class="text-[11px] text-gray-500 mt-1 font-medium leading-tight" id="action-type-hint">
-                            💡 <strong>Upgrade Mode:</strong> Previous payment is adjusted so only the difference is charged (no double payments!).
-                        </p>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">New Plan Start Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="renew_start_date" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-bold bg-white" onchange="calculateRenewAmounts()">
+                        <p class="text-[11px] text-gray-400 mt-1 font-medium">💡 New plan cycle starts from this date</p>
                     </div>
 
                     <!-- Select New Plan -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Select New Plan <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Select Plan <span class="text-red-500">*</span></label>
                         <select id="renew_plan_id" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-semibold bg-white cursor-pointer" onchange="calculateRenewAmounts()">
                             <option value="">Select Plan</option>
-                            <!-- Options injected by JS -->
                         </select>
                     </div>
 
-                    <!-- Start Date Mode (Hidden for Upgrade, Visible for Next Cycle Renewal) -->
-                    <div id="renew-start-date-container" class="hidden">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Renewal Start Date Option</label>
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <label class="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold cursor-pointer hover:bg-gray-100" id="opt-extend-label">
-                                <input type="radio" name="renew_mode" id="opt-extend" checked onchange="handleRenewModeChange()" class="accent-[#5d5fef]">
-                                <span>Extend Seamlessly</span>
-                            </label>
-                            <label class="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold cursor-pointer hover:bg-gray-100" id="opt-custom-label">
-                                <input type="radio" name="renew_mode" id="opt-custom" onchange="handleRenewModeChange()" class="accent-[#5d5fef]">
-                                <span>Start Today / Custom</span>
-                            </label>
-                        </div>
-                        <input type="date" id="renew_start_date" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-bold bg-white" onchange="calculateRenewAmounts()">
-                    </div>
-
-                    <!-- Live New Expiry Preview Box -->
-                    <div class="p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl text-emerald-800 text-xs font-medium flex items-center justify-between" id="renew-new-expiry-box">
+                    <!-- New Expiry Preview -->
+                    <div class="p-3 bg-emerald-50/80 border border-emerald-100 rounded-xl text-emerald-800 text-xs font-medium flex items-center justify-between">
                         <span class="flex items-center gap-1.5 font-bold">
                             <i class="fa-solid fa-calendar-check text-emerald-600"></i> New Expiry Date:
                         </span>
-                        <span class="font-black text-xs sm:text-sm text-emerald-700" id="renew-new-expiry-text">Select plan</span>
+                        <span class="font-black text-xs sm:text-sm text-emerald-700" id="renew-new-expiry-text">Select plan to preview</span>
                     </div>
 
-                    <!-- Financial Breakdown Box -->
-                    <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-2" id="fee-adjustment-box">
+                    <!-- Financial Breakdown -->
+                    <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-2">
                         <div class="flex justify-between text-gray-600">
-                            <span>New Plan Price:</span>
+                            <span>Plan Price:</span>
                             <span class="font-bold text-gray-900">₹<span id="calc-new-price">0</span></span>
                         </div>
                         <div class="flex justify-between text-rose-500 font-semibold hidden" id="row-discount-preview">
-                            <span>Discount Applied:</span>
+                            <span>Discount:</span>
                             <span>-₹<span id="calc-discount-preview">0</span></span>
                         </div>
-                        <div class="flex justify-between text-emerald-600 font-semibold" id="row-prev-adjusted">
-                            <span>Adjusted (Already Paid):</span>
-                            <span>-₹<span id="calc-prev-adjusted">0</span></span>
-                        </div>
                         <div class="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1.5">
-                            <span id="label-diff-collect">Difference to Collect (Adjusted):</span>
+                            <span>Total to Collect:</span>
                             <span class="text-indigo-600 font-black text-sm">₹<span id="calc-net-diff">0</span></span>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 pt-1">
+                    <div class="grid grid-cols-2 gap-4">
                         <!-- Discount -->
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Discount (₹)</label>
                             <input type="number" id="renew_discount" min="0" value="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-bold" oninput="calculateRenewAmounts(false)">
                         </div>
-                        
-                        <!-- Paid Amount -->
+                        <!-- Amount Paid Now -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Amount Paid Now (₹) <span class="text-red-500">*</span></label>
-                            <input type="number" id="renew_paid" required min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-black text-emerald-600" oninput="calculateDueLive()">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Amount Paid Now (₹)</label>
+                            <input type="number" id="renew_paid" min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-xs font-black text-emerald-600" oninput="calculateDueLive()">
                         </div>
                     </div>
 
-                    <!-- Live Remaining Due Status Box -->
+                    <!-- Due Status -->
                     <div id="renew-due-status-box" class="p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800">
-                        <span class="flex items-center gap-1.5 font-bold" id="renew-due-status-left">
+                        <span class="flex items-center gap-1.5 font-bold">
                             <i id="renew-due-status-icon" class="fa-solid fa-circle-check text-emerald-600"></i>
                             <span id="renew-due-status-label">Full Payment</span>
                         </span>
                         <span class="font-black text-xs sm:text-sm" id="renew-due-status-amount">Remaining Due: ₹0</span>
                     </div>
+
                 </div>
             </form>
         </div>
@@ -302,7 +266,7 @@
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3 shrink-0">
             <button type="button" onclick="closeRenewModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900 font-bold text-xs rounded-xl transition">Cancel</button>
-            <button type="submit" form="renew-form" id="btn-renew-submit" class="px-5 py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-xs font-black rounded-xl shadow-md shadow-[#5d5fef]/25 transition-all">Confirm Renewal</button>
+            <button type="submit" form="renew-form" id="btn-renew-submit" class="px-5 py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-xs font-black rounded-xl shadow-md shadow-[#5d5fef]/25 transition-all">✅ Confirm Renewal</button>
         </div>
     </div>
 </div>
@@ -1077,7 +1041,8 @@
 
             const batchDisplay = batch ? `<div class="text-[11px] text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded border border-purple-100"><i class="fa-solid fa-layer-group"></i> ${batch.name}</div>` : '';
 
-            const startedText = member.joining_date ? new Date(member.joining_date).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'N/A';
+            const planStartForDisplay = member.plan_start_date || member.joining_date;
+            const startedText = planStartForDisplay ? new Date(planStartForDisplay).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'N/A';
 
             const renewBtnStyle = 'w-10 h-10 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition shadow-sm cursor-pointer';
 
@@ -1251,8 +1216,9 @@
             document.getElementById('view-card-plan').textContent = 'No Active Plan';
         }
 
-        if (member.joining_date && plan && plan.duration_months) {
-            const startDate = new Date(member.joining_date);
+        const planStartForView = member.plan_start_date || member.joining_date;
+        if (planStartForView && plan && plan.duration_months) {
+            const startDate = new Date(planStartForView);
             const expiryDate = new Date(startDate);
             expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
             const startStr = startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1438,174 +1404,154 @@
         document.getElementById('wizard-modal').classList.add('hidden');
     }
 
-    // ---- Renew / Upgrade Plan Logic ----
+    // ---- Renew Plan Logic (Next Cycle Only) ----
     let activeMemberCalculatedExpiry = '';
     let todayIsoString = '';
-    let activeMemberRecentPaid = 0;
     let currentNetDifference = 0;
 
     function openRenewModal(id) {
         const member = membersData.find(m => m.id === id);
         if (!member) return;
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const plan = member.plan;
+        const planStartDate = member.plan_start_date || member.joining_date;
+
+        // ─── EXPIRY CHECK: Block renew if plan is still active ───
+        if (plan && plan.duration_months && planStartDate) {
+            const startDate  = new Date(planStartDate);
+            const expiryDate = new Date(startDate);
+            expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
+            expiryDate.setHours(0, 0, 0, 0);
+
+            if (expiryDate > today) {
+                // Plan is still ACTIVE → block renew, show info popup
+                const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+                showPlanActiveWarning(member.user?.name || 'Member', expiryStr, plan);
+                return; // ← Do NOT open renew modal
+            }
+        }
+
+        // ─── Plan is EXPIRED or has no plan → open renew modal ───
         document.getElementById('renew-modal').classList.remove('hidden');
         document.getElementById('renew_member_id').value = id;
         document.getElementById('renew-member-name').textContent = member.user?.name || 'Member';
 
-        // Calculate current plan validity & recent payment amount
-        const plan = member.plan;
-        const planTitle = plan && plan.plan_group_name ? `${plan.plan_group_name} (${plan.duration_months}M)` : 'No Active Plan';
+        todayIsoString = today.toISOString().split('T')[0];
+
+        const planTitle = plan && plan.plan_group_name
+            ? `${plan.plan_group_name} (${plan.duration_months}M)`
+            : 'No Active Plan';
         document.getElementById('renew-current-plan').textContent = planTitle;
 
-        // Recent paid on current plan
-        activeMemberRecentPaid = 0;
-        if (member.payments && member.payments.length > 0) {
-            const sortedPayments = [...member.payments].sort((a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0));
-            activeMemberRecentPaid = parseFloat(sortedPayments[0].paid_amount) || 0;
-        } else if (member.total_amount) {
-            activeMemberRecentPaid = parseFloat(member.total_amount) || 0;
-        }
-        document.getElementById('renew-current-paid-amount').textContent = activeMemberRecentPaid.toLocaleString('en-IN');
-        document.getElementById('calc-prev-adjusted').textContent = activeMemberRecentPaid.toLocaleString('en-IN');
+        if (planStartDate && plan && plan.duration_months) {
+            const startDate  = new Date(planStartDate);
+            const expiryDate = new Date(startDate);
+            expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
+            const startStr  = startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-        todayIsoString = new Date().toISOString().split('T')[0];
-        let currentExpiryDate = new Date();
-
-        if (member.joining_date && plan && plan.duration_months) {
-            const startDate = new Date(member.joining_date);
-            currentExpiryDate = new Date(startDate);
-            currentExpiryDate.setMonth(currentExpiryDate.getMonth() + parseInt(plan.duration_months));
-
-            const startStr = startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            const expiryStr = currentExpiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-            if (currentExpiryDate > new Date()) {
-                activeMemberCalculatedExpiry = currentExpiryDate.toISOString().split('T')[0];
-                document.getElementById('renew-current-badge').className = 'font-black px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700';
-                document.getElementById('renew-current-badge').textContent = 'Active Plan';
-                document.getElementById('renew-current-validity').textContent = `Valid: ${startStr} to ${expiryStr}`;
-            } else {
-                activeMemberCalculatedExpiry = todayIsoString;
-                document.getElementById('renew-current-badge').className = 'font-black px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-700';
-                document.getElementById('renew-current-badge').textContent = 'Expired';
-                document.getElementById('renew-current-validity').textContent = `Expired on: ${expiryStr}`;
-            }
+            activeMemberCalculatedExpiry = todayIsoString; // expired → start today
+            document.getElementById('renew-current-badge').className = 'font-black px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-700';
+            document.getElementById('renew-current-badge').textContent = 'Expired';
+            document.getElementById('renew-current-validity').textContent = `Expired on: ${expiryStr}`;
         } else {
-            activeMemberCalculatedExpiry = todayIsoString;
+            activeMemberCalculatedExpiry = today.toISOString().split('T')[0];
             document.getElementById('renew-current-badge').className = 'font-black px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-700';
             document.getElementById('renew-current-badge').textContent = 'No Plan';
-            document.getElementById('renew-current-validity').textContent = 'No previous plan validity';
+            document.getElementById('renew-current-validity').textContent = 'No previous plan found';
         }
 
-        // Default to Upgrade / Change Plan mode
-        document.getElementById('type-upgrade').checked = true;
-        handleActionTypeChange();
-
-        document.getElementById('opt-extend').checked = true;
         document.getElementById('renew_start_date').value = activeMemberCalculatedExpiry;
         document.getElementById('renew_discount').value = 0;
-        
-        // Populate plan options
+        document.getElementById('renew_paid').value = '';
+
         const select = document.getElementById('renew_plan_id');
         select.innerHTML = '<option value="">Select Plan</option>';
         plansData.forEach(p => {
             select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}" data-duration="${p.duration_months}">${p.display_name} - ₹${p.amount}</option>`;
         });
-        
-        document.getElementById('renew_paid').value = '';
-        calculateRenewAmounts(true);
-    }
-
-    function handleActionTypeChange() {
-        const isUpgrade = document.getElementById('type-upgrade').checked;
-        const startDateContainer = document.getElementById('renew-start-date-container');
-        const hintEl = document.getElementById('action-type-hint');
-        const prevAdjustedRow = document.getElementById('row-prev-adjusted');
-        const diffLabel = document.getElementById('label-diff-collect');
-        const upgradeLabel = document.getElementById('type-upgrade-label');
-        const renewLabel = document.getElementById('type-renew-label');
-
-        if (isUpgrade) {
-            startDateContainer.classList.add('hidden');
-            prevAdjustedRow.classList.remove('hidden');
-            diffLabel.textContent = 'Difference to Collect (Adjusted):';
-            hintEl.innerHTML = `💡 <strong>Upgrade / Change Mode:</strong> Previously paid amount (₹${activeMemberRecentPaid.toLocaleString('en-IN')}) will be deducted so only the difference is charged!`;
-            upgradeLabel.className = 'flex items-center gap-2 p-2.5 bg-indigo-50/90 border-2 border-indigo-400 rounded-xl text-xs font-bold cursor-pointer text-indigo-900 shadow-2xs';
-            renewLabel.className = 'flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer text-gray-600 hover:bg-gray-100';
-        } else {
-            startDateContainer.classList.remove('hidden');
-            prevAdjustedRow.classList.add('hidden');
-            diffLabel.textContent = 'Total Amount to Collect:';
-            hintEl.innerHTML = `💡 <strong>Next Cycle Renewal:</strong> Creates a fresh new payment for the next upcoming period.`;
-            renewLabel.className = 'flex items-center gap-2 p-2.5 bg-indigo-50/90 border-2 border-indigo-400 rounded-xl text-xs font-bold cursor-pointer text-indigo-900 shadow-2xs';
-            upgradeLabel.className = 'flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold cursor-pointer text-gray-600 hover:bg-gray-100';
-        }
 
         calculateRenewAmounts(true);
     }
 
-    function handleRenewModeChange() {
-        if (document.getElementById('opt-extend').checked) {
-            document.getElementById('renew_start_date').value = activeMemberCalculatedExpiry;
-        } else {
-            document.getElementById('renew_start_date').value = todayIsoString;
-        }
-        calculateRenewAmounts(true);
+    // ─── Warning popup: Plan still active, cannot renew yet ───
+    function showPlanActiveWarning(memberName, expiryStr, plan) {
+        const existingPopup = document.getElementById('plan-active-warning-popup');
+        if (existingPopup) existingPopup.remove();
+
+        const popup = document.createElement('div');
+        popup.id = 'plan-active-warning-popup';
+        popup.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
+        popup.innerHTML = `
+            <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="document.getElementById('plan-active-warning-popup').remove()"></div>
+            <div class="relative bg-white rounded-2xl shadow-2xl border border-amber-100 max-w-sm w-full p-6 text-center animate-bounce-in">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-calendar-check text-2xl text-amber-500"></i>
+                </div>
+                <h3 class="text-base font-extrabold text-gray-900 mb-1">Plan Still Active!</h3>
+                <p class="text-sm text-gray-500 font-medium mb-1">
+                    <span class="font-bold text-gray-800">${memberName}</span>'s plan is still active.
+                </p>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 my-4">
+                    <div class="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">Expires On</div>
+                    <div class="text-lg font-black text-amber-800">${expiryStr}</div>
+                    <div class="text-xs text-amber-600 mt-1 font-medium">${plan?.plan_group_name || ''} (${plan?.duration_months || ''}M)</div>
+                </div>
+                <p class="text-xs text-gray-400 font-medium mb-5">
+                    ⏳ You can only renew this plan after it has expired.
+                </p>
+                <button onclick="document.getElementById('plan-active-warning-popup').remove()"
+                    class="w-full py-2.5 bg-[#5d5fef] hover:bg-[#4d4fe0] text-white text-sm font-bold rounded-xl transition">
+                    Okay, Got It!
+                </button>
+            </div>
+        `;
+        document.body.appendChild(popup);
     }
+
 
     function closeRenewModal() {
         document.getElementById('renew-modal').classList.add('hidden');
     }
 
     function calculateRenewAmounts(updatePaidInput = true) {
-        const select = document.getElementById('renew_plan_id');
+        const select      = document.getElementById('renew_plan_id');
         const startDateVal = document.getElementById('renew_start_date').value || todayIsoString;
         const expiryTextEl = document.getElementById('renew-new-expiry-text');
-        const isUpgrade = document.getElementById('type-upgrade').checked;
 
         if (!select.value) {
-            document.getElementById('renew_paid').value = '';
+            if (updatePaidInput) document.getElementById('renew_paid').value = '';
             expiryTextEl.textContent = 'Select plan to preview';
             document.getElementById('calc-new-price').textContent = '0';
-            document.getElementById('calc-net-diff').textContent = '0';
+            document.getElementById('calc-net-diff').textContent  = '0';
             currentNetDifference = 0;
             calculateDueLive();
             return;
         }
 
-        const option = select.options[select.selectedIndex];
-        const planAmount = parseFloat(option.getAttribute('data-amount')) || 0;
+        const option       = select.options[select.selectedIndex];
+        const planAmount   = parseFloat(option.getAttribute('data-amount'))   || 0;
         const durationMonths = parseInt(option.getAttribute('data-duration')) || 1;
-        const discount = parseFloat(document.getElementById('renew_discount').value) || 0;
+        const discount     = parseFloat(document.getElementById('renew_discount').value) || 0;
         const netPlanPrice = Math.max(0, planAmount - discount);
 
         document.getElementById('calc-new-price').textContent = planAmount.toLocaleString('en-IN');
 
         const discRow = document.getElementById('row-discount-preview');
-        const discEl = document.getElementById('calc-discount-preview');
+        const discEl  = document.getElementById('calc-discount-preview');
         if (discRow && discEl) {
-            if (discount > 0) {
-                discRow.classList.remove('hidden');
-                discEl.textContent = discount.toLocaleString('en-IN');
-            } else {
-                discRow.classList.add('hidden');
-            }
+            if (discount > 0) { discRow.classList.remove('hidden'); discEl.textContent = discount.toLocaleString('en-IN'); }
+            else              { discRow.classList.add('hidden'); }
         }
 
-        let netToPay = netPlanPrice;
-        if (isUpgrade) {
-            netToPay = Math.max(0, netPlanPrice - activeMemberRecentPaid);
-        }
+        currentNetDifference = netPlanPrice;
+        document.getElementById('calc-net-diff').textContent = netPlanPrice.toLocaleString('en-IN');
+        if (updatePaidInput) document.getElementById('renew_paid').value = netPlanPrice;
 
-        currentNetDifference = netToPay;
-        document.getElementById('calc-net-diff').textContent = netToPay.toLocaleString('en-IN');
-        
-        if (updatePaidInput) {
-            document.getElementById('renew_paid').value = netToPay;
-        }
-
-        // Calculate and show new expiry date
-        const sDate = new Date(isUpgrade ? todayIsoString : startDateVal);
+        const sDate    = new Date(startDateVal);
         const newExpiry = new Date(sDate);
         newExpiry.setMonth(newExpiry.getMonth() + durationMonths);
         const formattedNewExpiry = newExpiry.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1615,74 +1561,72 @@
     }
 
     function calculateDueLive() {
-        const paidVal = parseFloat(document.getElementById('renew_paid').value) || 0;
+        const paidVal      = parseFloat(document.getElementById('renew_paid').value) || 0;
         const remainingDue = Math.max(0, currentNetDifference - paidVal);
-
-        const statusBox = document.getElementById('renew-due-status-box');
-        const statusIcon = document.getElementById('renew-due-status-icon');
-        const statusLabel = document.getElementById('renew-due-status-label');
+        const statusBox    = document.getElementById('renew-due-status-box');
+        const statusIcon   = document.getElementById('renew-due-status-icon');
+        const statusLabel  = document.getElementById('renew-due-status-label');
         const statusAmount = document.getElementById('renew-due-status-amount');
-
         if (!statusBox) return;
 
         if (remainingDue > 0) {
-            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-amber-50 border-amber-200 text-amber-900';
-            statusIcon.className = 'fa-solid fa-triangle-exclamation text-amber-600';
+            statusBox.className   = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-amber-50 border-amber-200 text-amber-900';
+            statusIcon.className  = 'fa-solid fa-triangle-exclamation text-amber-600';
             statusLabel.textContent = 'Partial Payment (Due Pending)';
-            statusAmount.className = 'font-black text-xs sm:text-sm text-amber-700';
+            statusAmount.className  = 'font-black text-xs sm:text-sm text-amber-700';
             statusAmount.textContent = `Remaining Due: ₹${remainingDue.toLocaleString('en-IN')}`;
         } else {
-            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800';
-            statusIcon.className = 'fa-solid fa-circle-check text-emerald-600';
-            statusLabel.textContent = 'Full Payment (No Pending Dues)';
-            statusAmount.className = 'font-black text-xs sm:text-sm text-emerald-700';
+            statusBox.className   = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800';
+            statusIcon.className  = 'fa-solid fa-circle-check text-emerald-600';
+            statusLabel.textContent = 'Full Payment';
+            statusAmount.className  = 'font-black text-xs sm:text-sm text-emerald-700';
             statusAmount.textContent = 'Remaining Due: ₹0';
         }
     }
 
     async function submitRenew(e) {
         e.preventDefault();
-        const id = document.getElementById('renew_member_id').value;
-        const isUpgrade = document.getElementById('type-upgrade').checked;
+        const id        = document.getElementById('renew_member_id').value;
+        const planId    = document.getElementById('renew_plan_id').value;
+        const startDate = document.getElementById('renew_start_date').value || todayIsoString;
+
+        if (!planId)    { showError('Please select a plan.'); return; }
+        if (!startDate) { showError('Please set a start date.'); return; }
+
         const payload = {
-            action_type: isUpgrade ? 'upgrade' : 'renew',
-            plan_id: document.getElementById('renew_plan_id').value,
-            start_date: document.getElementById('renew_start_date').value || todayIsoString,
-            discount: document.getElementById('renew_discount').value || 0,
-            amount_received: document.getElementById('renew_paid').value || 0
+            action_type     : 'renew',
+            plan_id         : planId,
+            start_date      : startDate,
+            discount        : document.getElementById('renew_discount').value || 0,
+            amount_received : document.getElementById('renew_paid').value || 0
         };
 
         const btn = document.getElementById('btn-renew-submit');
-        const origText = btn.textContent;
+        const origText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-        btn.disabled = true;
+        btn.disabled  = true;
 
         try {
-            const res = await fetch(`/api/members/${id}/renew`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
+            const res  = await fetch(`/api/members/${id}/renew`, {
+                method  : 'POST',
+                headers : { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body    : JSON.stringify(payload)
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showSuccess(isUpgrade ? 'Plan upgraded & previous payment adjusted successfully!' : 'Member renewed successfully!');
+                showSuccess('Member plan renewed successfully! New cycle started.');
                 closeRenewModal();
-                fetchMembers(); // refresh table and stats
+                fetchMembers();
             } else {
-                showError(data.message || 'Failed to update member plan.');
+                showError(data.message || 'Failed to renew member plan.');
             }
-        } catch (error) {
-            showError('Network error while processing plan update.');
+        } catch (err) {
+            showError('Network error while renewing plan.');
         } finally {
             btn.innerHTML = origText;
-            btn.disabled = false;
+            btn.disabled  = false;
         }
     }
-
     function togglePasswordVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);

@@ -4,8 +4,7 @@
 <!-- html2pdf for high quality client-side PDF download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-<!-- 🌟 Select2 CSS for Fast Searchable Member Dropdown -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 
 <style>
 /* Select2 Custom Clean Tailwind Styling */
@@ -801,8 +800,9 @@ function renderPayments() {
         
         const dateStr = new Date(p.payment_date || p.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
         const invoiceNum = 'INV-' + String(p.id).padStart(5, '0');
-        const planName = p.member?.plan?.plan_group_name || 'Standard Plan';
-        const duration = p.member?.plan?.duration_months ? `${p.member.plan.duration_months} Mo` : '—';
+        // Use payment's own plan snapshot (saved at time of payment) — NOT member's current plan
+        const planName = p.plan_name || p.member?.plan?.plan_group_name || 'Standard Plan';
+        const duration = (p.plan_duration_months || p.member?.plan?.duration_months) ? `${p.plan_duration_months || p.member?.plan?.duration_months} Mo` : '—';
         const txCount = (p.transactions && p.transactions.length) ? p.transactions.length : (p.paid_amount > 0 ? 1 : 0);
 
         html += `

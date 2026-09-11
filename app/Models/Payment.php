@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Payment extends Model
 {
     protected $fillable = [
-        'member_id', 'gym_id', 'total_amount', 'paid_amount',
-        'due_amount', 'payment_date', 'status'
+        'member_id', 'gym_id', 'plan_id', 'plan_duration_months', 'plan_name',
+        'total_amount', 'paid_amount', 'due_amount', 'payment_date', 'status'
     ];
 
     public function member(): BelongsTo { return $this->belongsTo(Member::class); }

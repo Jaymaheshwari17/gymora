@@ -74,8 +74,9 @@ class DashboardController extends Controller
 
                     $plan = $member->plan;
                     $duration = $plan ? (int)$plan->duration_months : 0;
-                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
-                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+                    $startDateStr = $member->plan_start_date ?: $member->joining_date;
+                    $planStartDate = $startDateStr ? \Carbon\Carbon::parse($startDateStr) : null;
+                    $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
 
                     if ($expiryDate && $expiryDate->between($startDate, $endDate)) {
                         if ($expiryDate->isPast()) {
@@ -90,8 +91,9 @@ class DashboardController extends Controller
                     if ($member->status === 'inactive') continue;
                     $plan = $member->plan;
                     $duration = $plan ? (int)$plan->duration_months : 0;
-                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
-                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+                    $startDateStr = $member->plan_start_date ?: $member->joining_date;
+                    $planStartDate = $startDateStr ? \Carbon\Carbon::parse($startDateStr) : null;
+                    $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
                     $isExpired = $expiryDate ? $expiryDate->isPast() : false;
                     if (!$isExpired) {
                         $activeMembers++;
@@ -150,8 +152,9 @@ class DashboardController extends Controller
 
                     $plan = $member->plan;
                     $duration = $plan ? (int)$plan->duration_months : 0;
-                    $joiningDate = $member->joining_date ? \Carbon\Carbon::parse($member->joining_date) : null;
-                    $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+                    $startDateStr = $member->plan_start_date ?: $member->joining_date;
+                    $planStartDate = $startDateStr ? \Carbon\Carbon::parse($startDateStr) : null;
+                    $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
 
                     $isExpired = $expiryDate ? $expiryDate->isPast() : false;
                     $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
@@ -605,7 +608,8 @@ class DashboardController extends Controller
             
             foreach($membersForExpiry as $member) {
                 if ($member->plan && $member->plan->duration_months) {
-                    $endDate = \Carbon\Carbon::parse($member->joining_date)->addMonths($member->plan->duration_months);
+                    $startDateStr = $member->plan_start_date ?: $member->joining_date;
+                    $endDate = \Carbon\Carbon::parse($startDateStr)->addMonths($member->plan->duration_months);
                     if ($endDate->between($now, $threeDaysFromNow)) {
                         $expiringSoon++;
                     }

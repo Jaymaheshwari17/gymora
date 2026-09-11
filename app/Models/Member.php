@@ -10,7 +10,7 @@ class Member extends Model
 {
     protected $fillable = [
         'user_id', 'gym_id', 'batch_id', 'trainer_id', 'plan_id',
-        'joining_date', 'plan_amount', 'discount', 'total_amount', 'status'
+        'joining_date', 'plan_start_date', 'plan_amount', 'discount', 'total_amount', 'status'
     ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }

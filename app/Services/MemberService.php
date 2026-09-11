@@ -35,16 +35,20 @@ class MemberService
             foreach ($members as $m) {
                 $plan = $m->plan;
                 $duration = $plan ? (int)$plan->duration_months : 0;
-                $joiningDate = $m->joining_date ? \Carbon\Carbon::parse($m->joining_date) : null;
-                $expiryDate = ($joiningDate && $duration > 0) ? $joiningDate->copy()->addMonths($duration) : null;
+                // Use plan_start_date for expiry calculation (joining_date is just the original registration date)
+                $planStartDate = $m->plan_start_date 
+                    ? \Carbon\Carbon::parse($m->plan_start_date) 
+                    : ($m->joining_date ? \Carbon\Carbon::parse($m->joining_date) : null);
+                $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
 
                 $isExpired = $expiryDate ? $expiryDate->isPast() : false;
                 $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
                 $isExpiredThisMonth = $expiryDate ? ($expiryDate->isPast() && $expiryDate->between($startOfMonth, $now)) : false;
                 $daysRemaining = $expiryDate ? (int) $now->diffInDays($expiryDate, false) : 0;
 
-                // New this month check
+                // New this month check - use original joining_date (registration date)
                 $isNewThisMonth = false;
+                $joiningDate = $m->joining_date ? \Carbon\Carbon::parse($m->joining_date) : null;
                 if ($joiningDate) {
                     $isNewThisMonth = $joiningDate->isCurrentMonth() && $joiningDate->isCurrentYear();
                 } elseif ($m->created_at) {
@@ -120,21 +124,25 @@ class MemberService
                 'trainer_id' => $data['trainer_id'] ?? null,
                 'plan_id' => $plan->id,
                 'joining_date' => $data['joining_date'],
+                'plan_start_date' => $data['joining_date'], // Initial plan starts on joining date
                 'plan_amount' => $planAmount,
                 'discount' => $discount,
                 'total_amount' => $totalAmount,
                 'status' => 'active',
             ]);
 
-            // Create Payment record
+            // Create Payment record (with plan info snapshot so invoice always shows correct plan)
             $payment = Payment::create([
-                'member_id' => $member->id,
-                'gym_id' => $gymId,
-                'total_amount' => $totalAmount,
-                'paid_amount' => $paidAmount,
-                'due_amount' => $dueAmount,
-                'payment_date' => $paidAmount > 0 ? ($data['joining_date'] ?? now()->toDateString()) : null,
-                'status' => $paymentStatus,
+                'member_id'            => $member->id,
+                'gym_id'               => $gymId,
+                'plan_id'              => $plan->id,
+                'plan_duration_months' => (int)$plan->duration_months,
+                'plan_name'            => $plan->plan_group_name,
+                'total_amount'         => $totalAmount,
+                'paid_amount'          => $paidAmount,
+                'due_amount'           => $dueAmount,
+                'payment_date'         => $paidAmount > 0 ? ($data['joining_date'] ?? now()->toDateString()) : null,
+                'status'               => $paymentStatus,
             ]);
 
             // If initial amount is paid, record transaction history
@@ -194,7 +202,7 @@ class MemberService
             if (isset($data['trainer_id'])) $memberUpdate['trainer_id'] = $data['trainer_id'];
             if (isset($data['status'])) $memberUpdate['status'] = $data['status'];
             if (isset($data['joining_date'])) $memberUpdate['joining_date'] = $data['joining_date'];
-
+            
             // Handle Plan and Payment Updates if passed
             if (isset($data['plan_id'])) {
                 $plan = Plan::where('id', $data['plan_id'])->where('gym_id', $gymId)->first();
@@ -222,6 +230,9 @@ class MemberService
                         
                         if ($payment) {
                             $payment->update([
+                                'plan_id' => $plan->id,
+                                'plan_duration_months' => (int)$plan->duration_months,
+                                'plan_name' => $plan->plan_group_name,
                                 'total_amount' => $totalAmount,
                                 'paid_amount' => $paidAmount,
                                 'due_amount' => $dueAmount,
@@ -231,6 +242,9 @@ class MemberService
                             Payment::create([
                                 'member_id' => $member->id,
                                 'gym_id' => $gymId,
+                                'plan_id' => $plan->id,
+                                'plan_duration_months' => (int)$plan->duration_months,
+                                'plan_name' => $plan->plan_group_name,
                                 'total_amount' => $totalAmount,
                                 'paid_amount' => $paidAmount,
                                 'due_amount' => $dueAmount,
@@ -305,13 +319,16 @@ class MemberService
                     ]);
                 } else {
                     $recentPayment = Payment::create([
-                        'member_id' => $member->id,
-                        'gym_id' => $gymId,
-                        'total_amount' => $totalAmount,
-                        'paid_amount' => $totalPaidCumulative,
-                        'due_amount' => $dueAmount,
-                        'payment_date' => now()->toDateString(),
-                        'status' => $paymentStatus,
+                        'member_id'            => $member->id,
+                        'gym_id'               => $gymId,
+                        'plan_id'              => $plan->id,
+                        'plan_duration_months' => (int)$plan->duration_months,
+                        'plan_name'            => $plan->plan_group_name,
+                        'total_amount'         => $totalAmount,
+                        'paid_amount'          => $totalPaidCumulative,
+                        'due_amount'           => $dueAmount,
+                        'payment_date'         => now()->toDateString(),
+                        'status'               => $paymentStatus,
                     ]);
                 }
 
@@ -328,9 +345,10 @@ class MemberService
                 }
 
                 // Update Member profile
+                // NOTE: joining_date is NEVER updated on renew/upgrade - it's the original gym joining date
                 $member->update([
                     'plan_id' => $plan->id,
-                    'joining_date' => $data['start_date'] ?? $member->joining_date,
+                    'plan_start_date' => $data['start_date'] ?? now()->toDateString(),
                     'plan_amount' => $planAmount,
                     'discount' => $discount,
                     'total_amount' => $totalAmount,
@@ -343,23 +361,28 @@ class MemberService
                 if ($dueAmount <= 0) $paymentStatus = 'paid';
                 else if ($paidAmount > 0) $paymentStatus = 'partial';
 
+                // NOTE: joining_date is NEVER updated on renew - it's the original gym joining date
                 $member->update([
                     'plan_id' => $plan->id,
-                    'joining_date' => $data['start_date'] ?? $member->joining_date,
+                    'plan_start_date' => $data['start_date'] ?? now()->toDateString(),
                     'plan_amount' => $planAmount,
                     'discount' => $discount,
                     'total_amount' => $totalAmount,
                     'status' => 'active',
                 ]);
 
+                // Create new payment record for this renewal cycle (with plan snapshot)
                 $newPayment = Payment::create([
-                    'member_id' => $member->id,
-                    'gym_id' => $gymId,
-                    'total_amount' => $totalAmount,
-                    'paid_amount' => $paidAmount,
-                    'due_amount' => $dueAmount,
-                    'payment_date' => $paidAmount > 0 ? ($data['start_date'] ?? now()->toDateString()) : null,
-                    'status' => $paymentStatus,
+                    'member_id'            => $member->id,
+                    'gym_id'               => $gymId,
+                    'plan_id'              => $plan->id,
+                    'plan_duration_months' => (int)$plan->duration_months,
+                    'plan_name'            => $plan->plan_group_name,
+                    'total_amount'         => $totalAmount,
+                    'paid_amount'          => $paidAmount,
+                    'due_amount'           => $dueAmount,
+                    'payment_date'         => $paidAmount > 0 ? ($data['start_date'] ?? now()->toDateString()) : null,
+                    'status'               => $paymentStatus,
                 ]);
 
                 if ($paidAmount > 0) {
