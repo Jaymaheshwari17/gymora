@@ -90,9 +90,19 @@ class MemberService
         try {
             // Get Plan details
             $plan = Plan::where('id', $data['plan_id'])->where('gym_id', $gymId)->firstOrFail();
-            $planAmount = $plan->amount;
-            $discount = $data['discount'] ?? 0;
-            $totalAmount = $planAmount - $discount;
+            $planAmount = (float)$plan->amount;
+            
+            // Get PT Plan details if provided
+            $ptPlanAmount = 0;
+            if (!empty($data['pt_plan_id'])) {
+                $ptPlan = Plan::where('id', $data['pt_plan_id'])->where('gym_id', $gymId)->first();
+                if ($ptPlan) {
+                    $ptPlanAmount = (float)$ptPlan->amount;
+                }
+            }
+
+            $discount = isset($data['discount']) ? (float)$data['discount'] : 0;
+            $totalAmount = max(0, ($planAmount + $ptPlanAmount) - $discount);
             $paidAmount = $data['amount_received'] ?? 0;
             $dueAmount = $totalAmount - $paidAmount;
 
@@ -123,9 +133,11 @@ class MemberService
                 'batch_id' => $data['batch_id'] ?? null,
                 'trainer_id' => $data['trainer_id'] ?? null,
                 'plan_id' => $plan->id,
+                'pt_plan_id' => !empty($data['pt_plan_id']) ? $data['pt_plan_id'] : null,
                 'joining_date' => $data['joining_date'],
                 'plan_start_date' => $data['joining_date'], // Initial plan starts on joining date
-                'plan_amount' => $planAmount,
+                'pt_plan_start_date' => !empty($data['pt_plan_id']) ? $data['joining_date'] : null,
+                'plan_amount' => $planAmount + $ptPlanAmount, // Total base amount before discount
                 'discount' => $discount,
                 'total_amount' => $totalAmount,
                 'status' => 'active',
@@ -208,11 +220,30 @@ class MemberService
                 $plan = Plan::where('id', $data['plan_id'])->where('gym_id', $gymId)->first();
                 if ($plan) {
                     $memberUpdate['plan_id'] = $plan->id;
-                    $planAmount = $plan->amount;
-                    $discount = isset($data['discount']) ? (float)$data['discount'] : $member->discount;
-                    $totalAmount = max(0, $planAmount - $discount);
+                    $planAmount = (float)$plan->amount;
                     
-                    $memberUpdate['plan_amount'] = $planAmount;
+                    // Handle PT Plan if provided during update
+                    $ptPlanAmount = 0;
+                    if (array_key_exists('pt_plan_id', $data)) {
+                        $memberUpdate['pt_plan_id'] = $data['pt_plan_id'] ?: null;
+                        if ($data['pt_plan_id']) {
+                            $ptPlan = Plan::where('id', $data['pt_plan_id'])->where('gym_id', $gymId)->first();
+                            if ($ptPlan) {
+                                $ptPlanAmount = (float)$ptPlan->amount;
+                            }
+                        }
+                    } else if ($member->pt_plan_id) {
+                        // Keep existing PT plan amount if not passed
+                        $ptPlan = Plan::where('id', $member->pt_plan_id)->where('gym_id', $gymId)->first();
+                        if ($ptPlan) {
+                            $ptPlanAmount = (float)$ptPlan->amount;
+                        }
+                    }
+
+                    $discount = isset($data['discount']) ? (float)$data['discount'] : $member->discount;
+                    $totalAmount = max(0, ($planAmount + $ptPlanAmount) - $discount);
+                    
+                    $memberUpdate['plan_amount'] = $planAmount + $ptPlanAmount;
                     $memberUpdate['discount'] = $discount;
                     $memberUpdate['total_amount'] = $totalAmount;
                     

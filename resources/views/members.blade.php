@@ -430,6 +430,13 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Plan Type <span class="text-red-500">*</span></label>
+                            <select id="plan_type_select" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="populatePlanSelect()">
+                                <option value="general_training">Gym Plan (General Training)</option>
+                                <option value="personal_training">Personal Training (PT)</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Plan <span class="text-red-500">*</span></label>
                             <select id="plan_id" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="calculateTotal()">
                                 <option value="">Select a plan...</option>
@@ -437,11 +444,11 @@
                             </select>
                             <p id="error-plan_id" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
-                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
-                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                        <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                     </div>
 
                     <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4 shadow-inner">
@@ -805,12 +812,7 @@
             });
             plansData = flatPlans;
             
-            // Populate modal plan select
-            const select = document.getElementById('plan_id');
-            select.innerHTML = '<option value="">Select a plan...</option>';
-            plansData.forEach(p => {
-                select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} (₹${p.amount})</option>`;
-            });
+            populatePlanSelect();
 
             // Populate top header filter select
             const filterSelect = document.getElementById('member-plan-filter');
@@ -1377,7 +1379,16 @@
         document.getElementById('password-hint').textContent = "Leave blank if you don't want to change the password.";
 
         // Step 3
-        if(member.plan_id) document.getElementById('plan_id').value = member.plan_id;
+        if(member.plan_id) {
+            const pObj = plansData.find(p => p.id == member.plan_id);
+            if (pObj && pObj.plan_type) {
+                document.getElementById('plan_type_select').value = pObj.plan_type;
+            } else {
+                document.getElementById('plan_type_select').value = 'general_training';
+            }
+            populatePlanSelect();
+            document.getElementById('plan_id').value = member.plan_id;
+        }
         if(member.joining_date) document.getElementById('joining_date').value = member.joining_date;
         document.getElementById('discount').value = (member.discount !== undefined && member.discount !== null) ? parseFloat(member.discount) : 0;
         
@@ -1747,12 +1758,26 @@
         }
     }
 
+    function populatePlanSelect() {
+        const type = document.getElementById('plan_type_select').value;
+        const select = document.getElementById('plan_id');
+        select.innerHTML = '<option value="">Select a plan...</option>';
+        
+        plansData.forEach(p => {
+            const pType = p.plan_type || 'general_training';
+            if (pType === type) {
+                select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} (₹${p.amount})</option>`;
+            }
+        });
+        calculateTotal();
+    }
+
     // Dynamic Calculations
     function calculateTotal() {
         const select = document.getElementById('plan_id');
         const option = select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
-        
         let planAmount = parseFloat(option ? option.getAttribute('data-amount') : 0) || 0;
+        
         let discount = parseFloat(document.getElementById('discount').value) || 0;
         
         document.getElementById('plan_amount').value = planAmount;
@@ -1855,10 +1880,16 @@
         
         if (!isEditing) {
             form.append('plan_id', document.getElementById('plan_id').value);
+            form.append('pt_plan_id', '');
+            
             form.append('discount', document.getElementById('discount').value);
             form.append('amount_received', document.getElementById('amount_received').value);
         } else {
             form.append('status', document.getElementById('status').value);
+            form.append('pt_plan_id', ''); 
+            if(document.getElementById('plan_id').value) {
+                form.append('plan_id', document.getElementById('plan_id').value);
+            }
         }
 
         const photoFile = document.getElementById('photo').files[0];

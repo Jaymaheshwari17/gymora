@@ -54,6 +54,7 @@ class PlanController extends Controller
             $validator = Validator::make($request->all(), [
                 'plan_group_name' => 'required|string|max:100',
                 'description' => 'nullable|string',
+                'plan_type' => 'nullable|in:general_training,personal_training',
                 'durations' => 'required|array|min:1',
                 'durations.*.duration_months' => 'required|integer|min:1',
                 'durations.*.amount' => 'required|numeric|min:0',
@@ -86,6 +87,7 @@ class PlanController extends Controller
             $validator = Validator::make($request->all(), [
                 'plan_group_name' => 'sometimes|required|string|max:100',
                 'description' => 'nullable|string',
+                'plan_type' => 'nullable|in:general_training,personal_training',
                 'duration_months' => 'sometimes|required|integer|min:1',
                 'amount' => 'sometimes|required|numeric|min:0',
                 'is_active' => 'sometimes|boolean',

@@ -53,6 +53,7 @@ class PlanService
                     'gym_id' => $gymId,
                     'plan_group_name' => $data['plan_group_name'],
                     'description' => $data['description'] ?? null,
+                    'plan_type' => $data['plan_type'] ?? 'general_training',
                     'duration_months' => $duration['duration_months'],
                     'amount' => $duration['amount'],
                     'is_active' => true,
@@ -77,6 +78,7 @@ class PlanService
             $plan->update([
                 'plan_group_name' => $data['plan_group_name'] ?? $plan->plan_group_name,
                 'description' => $data['description'] ?? $plan->description,
+                'plan_type' => $data['plan_type'] ?? $plan->plan_type,
                 'duration_months' => $data['duration_months'] ?? $plan->duration_months,
                 'amount' => $data['amount'] ?? $plan->amount,
                 'is_active' => $data['is_active'] ?? $plan->is_active,

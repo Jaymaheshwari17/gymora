@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Member extends Model
 {
     protected $fillable = [
-        'user_id', 'gym_id', 'batch_id', 'trainer_id', 'plan_id',
-        'joining_date', 'plan_start_date', 'plan_amount', 'discount', 'total_amount', 'status'
+        'user_id', 'gym_id', 'batch_id', 'trainer_id', 'plan_id', 'pt_plan_id',
+        'joining_date', 'plan_start_date', 'pt_plan_start_date', 'plan_amount', 'discount', 'total_amount', 'status'
     ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
@@ -18,6 +18,7 @@ class Member extends Model
     public function batch(): BelongsTo { return $this->belongsTo(Batch::class); }
     public function trainer(): BelongsTo { return $this->belongsTo(User::class, 'trainer_id'); }
     public function plan(): BelongsTo { return $this->belongsTo(Plan::class); }
+    public function ptPlan(): BelongsTo { return $this->belongsTo(Plan::class, 'pt_plan_id'); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
     public function paymentTransactions(): HasMany { return $this->hasMany(PaymentTransaction::class)->orderBy('payment_date', 'asc'); }
     public function attendance(): HasMany { return $this->hasMany(Attendance::class); }

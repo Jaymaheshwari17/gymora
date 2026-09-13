@@ -715,7 +715,7 @@ class DashboardController extends Controller
                 ->where('user_id', $user->id)
                 ->first();
 
-            $user->load('gym');
+            $user->load(['gym', 'gym.owner']);
 
             if (!$member) {
                 return $this->errorResponse('Member profile not found.', [], 404);
@@ -813,6 +813,12 @@ class DashboardController extends Controller
                 'is_birthday_today' => $isBirthdayToday,
                 'notifications' => $memberNotifications,
                 'gym_name' => $user->gym ? $user->gym->name : 'My Gym',
+                'gym_details' => $user->gym ? [
+                    'name' => $user->gym->name,
+                    'address' => $user->gym->address,
+                    'contact_number' => $user->gym->contact_number,
+                    'owner_name' => $user->gym->owner ? $user->gym->owner->name : 'Owner',
+                ] : null,
                 'trainer' => $member->trainer ? [
                     'id' => $member->trainer->id,
                     'name' => $member->trainer->name ?? 'Unknown',

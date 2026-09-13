@@ -8,9 +8,14 @@
             <h1 class="text-2xl font-bold text-gray-900 mb-1">Plans & Packages</h1>
             <p class="text-gray-500 text-sm font-medium">Create and manage your gym's membership plans.</p>
         </div>
-        <button onclick="openModal()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
-            <i class="fa-solid fa-plus"></i> Add New Plan Group
-        </button>
+        <div class="flex gap-3">
+            <button onclick="openModal('personal_training')" class="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                <i class="fa-solid fa-user-ninja"></i> Add PT Plan
+            </button>
+            <button onclick="openModal('general_training')" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-indigo-700 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                <i class="fa-solid fa-plus"></i> Add Gym Plan
+            </button>
+        </div>
     </div>
 
     <!-- Plans Data Table -->
@@ -75,7 +80,7 @@
         
         <!-- Modal Header -->
         <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <h3 class="text-lg font-bold text-gray-900">Add New Plan Group</h3>
+            <h3 class="text-lg font-bold text-gray-900" id="modal-title">Add New Plan Group</h3>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
@@ -84,6 +89,7 @@
         <!-- Modal Body -->
         <div class="p-6 overflow-y-auto">
             <form id="plan-form" onsubmit="savePlan(event)">
+                <input type="hidden" id="plan_type" value="general_training">
                 <div class="space-y-6">
                     <!-- Basic Info -->
                     <div class="grid grid-cols-1 gap-5">
@@ -243,11 +249,15 @@
                 ? '<span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-green-100 text-green-700">Active</span>'
                 : '<span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-100 text-red-700">Inactive</span>';
 
+            const typeBadge = p.plan_type === 'personal_training' 
+                ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 ml-2">PT Plan</span>'
+                : '<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 ml-2">Gym Plan</span>';
+
             html += `
                 <tr>
                     <td class="font-bold text-gray-500">${index + 1}</td>
                     <td>
-                        <div class="font-bold text-gray-900">${p.plan_group_name}</div>
+                        <div class="font-bold text-gray-900 flex items-center">${p.plan_group_name} ${typeBadge}</div>
                         <div class="text-xs text-gray-500 mt-1">${p.description || 'No description'}</div>
                     </td>
                     <td>
@@ -445,8 +455,18 @@
         }
     }
 
-    function openModal() {
+    function openModal(type = 'general_training') {
         document.getElementById('plan-form').reset();
+        document.getElementById('plan_type').value = type;
+        
+        if (type === 'personal_training') {
+            document.getElementById('modal-title').textContent = 'Add Personal Training Plan';
+            document.getElementById('plan_group_name').placeholder = 'e.g. 1-on-1 PT Sessions';
+        } else {
+            document.getElementById('modal-title').textContent = 'Add Gym Plan Group';
+            document.getElementById('plan_group_name').placeholder = 'e.g. Cardio & Weights';
+        }
+
         clearErrors();
         // Reset rows to just 1 default row
         const container = document.getElementById('durations-container');
@@ -480,6 +500,7 @@
         // Gather data
         const planGroupName = document.getElementById('plan_group_name').value;
         const description = document.getElementById('description').value;
+        const planType = document.getElementById('plan_type').value;
         
         const durations = [];
         const rows = document.querySelectorAll('.duration-row');
@@ -496,6 +517,7 @@
         const payload = {
             plan_group_name: planGroupName,
             description: description,
+            plan_type: planType,
             durations: durations
         };
 

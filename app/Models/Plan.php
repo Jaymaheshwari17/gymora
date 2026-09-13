@@ -14,6 +14,7 @@ class Plan extends Model
         'amount',
         'description',
         'is_active',
+        'plan_type',
     ];
 
     /**
