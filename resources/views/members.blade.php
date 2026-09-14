@@ -430,13 +430,6 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Plan Type <span class="text-red-500">*</span></label>
-                            <select id="plan_type_select" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="populatePlanSelect()">
-                                <option value="general_training">Gym Plan (General Training)</option>
-                                <option value="personal_training">Personal Training (PT)</option>
-                            </select>
-                        </div>
-                        <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1.5">Select Plan <span class="text-red-500">*</span></label>
                             <select id="plan_id" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all" onchange="calculateTotal()">
                                 <option value="">Select a plan...</option>
@@ -444,11 +437,11 @@
                             </select>
                             <p id="error-plan_id" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
                         </div>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
-                        <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
-                        <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Joining Date <span class="text-red-500">*</span></label>
+                            <input type="date" id="joining_date" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-sm outline-none transition-all">
+                            <p id="error-joining_date" class="text-red-500 text-xs mt-1.5 hidden font-medium"></p>
+                        </div>
                     </div>
 
                     <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4 shadow-inner">
@@ -640,6 +633,23 @@
                     </div>
                 </div>
 
+                <!-- PT Plan & Validity Card -->
+                <div id="view-card-pt-container" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3 hidden">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Personal Trainer Plan</span>
+                        <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-md"><i class="fa-solid fa-hand-fist mr-1"></i> PT Plan</span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <div id="view-card-pt-plan" class="text-lg font-black text-gray-900 leading-tight">Personal - 3 Month(s)</div>
+                            <div class="text-xs text-purple-700 font-bold mt-1.5 flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar-check text-purple-500"></i>
+                                <span id="view-card-pt-validity">06 Mar 2027 – 06 Mar 2028</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Financial Health Grid -->
                 <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                     <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Billing & Payment Summary</span>
@@ -695,6 +705,100 @@
 </div>
 
 @push('page-scripts')
+
+<!-- Assign PT Plan Modal -->
+<div id="assign-pt-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6">
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeAssignPtModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl relative z-10 w-full max-w-md flex flex-col max-h-[92vh] transform transition-all border border-gray-100 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50 flex justify-between items-center shrink-0">
+            <div>
+                <h3 class="text-base font-extrabold text-gray-900">💪 Assign PT Plan</h3>
+                <p class="text-xs text-gray-500 font-medium mt-0.5" id="assign-pt-member-name">Member Name</p>
+            </div>
+            <button type="button" onclick="closeAssignPtModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto flex-1">
+            <form id="assign-pt-form" onsubmit="submitAssignPt(event)">
+                <input type="hidden" id="assign_pt_member_id">
+                
+                <div class="space-y-4">
+                    <!-- Select Trainer -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Select Trainer <span class="text-red-500">*</span></label>
+                        <select id="assign_pt_trainer_id" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-semibold text-gray-900 bg-white cursor-pointer">
+                            <option value="">Select Trainer</option>
+                        </select>
+                    </div>
+
+                    <!-- Select PT Plan -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Select PT Plan <span class="text-red-500">*</span></label>
+                        <select id="assign_pt_plan_id" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-semibold text-gray-900 bg-white cursor-pointer" onchange="calculatePtAmounts()">
+                            <option value="">Select Plan</option>
+                        </select>
+                    </div>
+
+                    <!-- PT Plan Start Date -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">PT Start Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="assign_pt_start_date" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-bold text-gray-900 bg-white" onchange="calculatePtAmounts()">
+                    </div>
+
+                    <!-- Financial Breakdown -->
+                    <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-2">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Plan Price:</span>
+                            <span class="font-bold text-gray-900">₹<span id="pt-calc-new-price">0</span></span>
+                        </div>
+                        <div class="flex justify-between text-rose-500 font-semibold hidden" id="pt-row-discount-preview">
+                            <span>Discount:</span>
+                            <span>-₹<span id="pt-calc-discount-preview">0</span></span>
+                        </div>
+                        <div class="flex justify-between text-gray-900 font-bold border-t border-gray-200 pt-1.5">
+                            <span>Total to Collect:</span>
+                            <span class="text-purple-600 font-black text-sm">₹<span id="pt-calc-net-diff">0</span></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Discount -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Discount (₹)</label>
+                            <input type="number" id="assign_pt_discount" min="0" value="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-bold text-gray-900 bg-white" oninput="calculatePtAmounts(false)">
+                        </div>
+                        <!-- Amount Paid Now -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Amount Paid Now (₹)</label>
+                            <input type="number" id="assign_pt_paid" min="0" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-600 outline-none text-xs font-black text-emerald-600 bg-white" oninput="calculatePtDueLive()">
+                        </div>
+                    </div>
+
+                    <!-- Due Status -->
+                    <div id="pt-due-status-box" class="p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800">
+                        <span class="flex items-center gap-1.5 font-bold">
+                            <i id="pt-due-status-icon" class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span id="pt-due-status-label">Full Payment</span>
+                        </span>
+                        <span class="font-black text-xs sm:text-sm" id="pt-due-status-amount">Remaining Due: ₹0</span>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3 shrink-0">
+            <button type="button" onclick="closeAssignPtModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900 font-bold text-xs rounded-xl transition cursor-pointer">Cancel</button>
+            <button type="submit" form="assign-pt-form" id="btn-pt-submit" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-xl shadow-md shadow-purple-600/25 transition-all cursor-pointer">✅ Assign PT Plan</button>
+        </div>
+    </div>
+</div>
 <script>
     let membersData = [];
     let plansData = [];
@@ -806,13 +910,22 @@
                 plans.forEach(p => {
                     flatPlans.push({
                         ...p,
+                        group_name: groupName,
                         display_name: `${groupName} - ${p.duration_months} Month(s)`
                     });
                 });
             });
             plansData = flatPlans;
             
-            populatePlanSelect();
+            // Populate modal plan select (General plans only)
+            const select = document.getElementById('plan_id');
+            select.innerHTML = '<option value="">Select a plan...</option>';
+            plansData.forEach(p => {
+                const gName = (p.group_name || '').toLowerCase();
+                if (!gName.includes('personal') && !gName.includes('pt')) {
+                    select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} (₹${p.amount})</option>`;
+                }
+            });
 
             // Populate top header filter select
             const filterSelect = document.getElementById('member-plan-filter');
@@ -1110,6 +1223,9 @@
                             <button onclick='openRenewModal(${member.id})' class="${renewBtnStyle}" title="Renew / Extend Plan">
                                 <i class="fa-solid fa-arrows-rotate text-sm"></i>
                             </button>
+                            <button onclick='openAssignPtModal(${member.id})' class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Assign PT Plan">
+                                <i class="fa-solid fa-dumbbell text-sm"></i>
+                            </button>
                             <button onclick='viewMember(${JSON.stringify(member).replace(/'/g, "&#39;")})' class="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="View Details">
                                 <i class="fa-solid fa-eye text-sm"></i>
                             </button>
@@ -1240,6 +1356,40 @@
             }
         } else {
             document.getElementById('view-card-validity').textContent = 'No validity set';
+        }
+        
+        // PT Plan Details
+        const ptContainer = document.getElementById('view-card-pt-container');
+        if (member.pt_plan_id && member.pt_plan) {
+            const ptPlan = member.pt_plan;
+            document.getElementById('view-card-pt-plan').textContent = `${ptPlan.plan_group_name} (${ptPlan.duration_months}M)`;
+            
+            if (member.pt_plan_start_date && ptPlan.duration_months) {
+                const ptStartDate = new Date(member.pt_plan_start_date);
+                const ptExpiryDate = new Date(ptStartDate);
+                ptExpiryDate.setMonth(ptExpiryDate.getMonth() + parseInt(ptPlan.duration_months));
+                
+                const pStartStr = ptStartDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                const pExpiryStr = ptExpiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isPtExp = today > ptExpiryDate;
+                const ptDiffDays = Math.ceil((ptExpiryDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (isPtExp) {
+                    document.getElementById('view-card-pt-validity').innerHTML = `${pStartStr} – ${pExpiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-700 uppercase">Expired</span>`;
+                } else if (ptDiffDays <= 7) {
+                    document.getElementById('view-card-pt-validity').innerHTML = `${pStartStr} – ${pExpiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 uppercase">Expires in ${ptDiffDays}d</span>`;
+                } else {
+                    document.getElementById('view-card-pt-validity').innerHTML = `${pStartStr} – ${pExpiryStr} <span class="ml-1.5 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase">Active</span>`;
+                }
+            } else {
+                document.getElementById('view-card-pt-validity').textContent = 'No PT validity set';
+            }
+            ptContainer.classList.remove('hidden');
+        } else {
+            ptContainer.classList.add('hidden');
         }
         
         document.getElementById('view-card-joined').textContent = member.joining_date ? new Date(member.joining_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
@@ -1379,16 +1529,7 @@
         document.getElementById('password-hint').textContent = "Leave blank if you don't want to change the password.";
 
         // Step 3
-        if(member.plan_id) {
-            const pObj = plansData.find(p => p.id == member.plan_id);
-            if (pObj && pObj.plan_type) {
-                document.getElementById('plan_type_select').value = pObj.plan_type;
-            } else {
-                document.getElementById('plan_type_select').value = 'general_training';
-            }
-            populatePlanSelect();
-            document.getElementById('plan_id').value = member.plan_id;
-        }
+        if(member.plan_id) document.getElementById('plan_id').value = member.plan_id;
         if(member.joining_date) document.getElementById('joining_date').value = member.joining_date;
         document.getElementById('discount').value = (member.discount !== undefined && member.discount !== null) ? parseFloat(member.discount) : 0;
         
@@ -1758,26 +1899,12 @@
         }
     }
 
-    function populatePlanSelect() {
-        const type = document.getElementById('plan_type_select').value;
-        const select = document.getElementById('plan_id');
-        select.innerHTML = '<option value="">Select a plan...</option>';
-        
-        plansData.forEach(p => {
-            const pType = p.plan_type || 'general_training';
-            if (pType === type) {
-                select.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} (₹${p.amount})</option>`;
-            }
-        });
-        calculateTotal();
-    }
-
     // Dynamic Calculations
     function calculateTotal() {
         const select = document.getElementById('plan_id');
         const option = select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
-        let planAmount = parseFloat(option ? option.getAttribute('data-amount') : 0) || 0;
         
+        let planAmount = parseFloat(option ? option.getAttribute('data-amount') : 0) || 0;
         let discount = parseFloat(document.getElementById('discount').value) || 0;
         
         document.getElementById('plan_amount').value = planAmount;
@@ -1880,16 +2007,10 @@
         
         if (!isEditing) {
             form.append('plan_id', document.getElementById('plan_id').value);
-            form.append('pt_plan_id', '');
-            
             form.append('discount', document.getElementById('discount').value);
             form.append('amount_received', document.getElementById('amount_received').value);
         } else {
             form.append('status', document.getElementById('status').value);
-            form.append('pt_plan_id', ''); 
-            if(document.getElementById('plan_id').value) {
-                form.append('plan_id', document.getElementById('plan_id').value);
-            }
         }
 
         const photoFile = document.getElementById('photo').files[0];
@@ -1962,6 +2083,152 @@
             }
         });
     }
+
+    // ---- PT Assign Logic ----
+    let ptNetDifference = 0;
+
+    function openAssignPtModal(id) {
+        const member = membersData.find(m => m.id === id);
+        if (!member) return;
+
+        document.getElementById('assign_pt_member_id').value = id;
+        document.getElementById('assign-pt-member-name').textContent = member.user?.name || 'Member';
+        document.getElementById('assign_pt_start_date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('assign_pt_discount').value = 0;
+        document.getElementById('assign_pt_paid').value = '';
+
+        // Populate trainers
+        const trainerSelect = document.getElementById('assign_pt_trainer_id');
+        trainerSelect.innerHTML = '<option value="">Select Trainer</option>';
+        trainersData.forEach(t => {
+            trainerSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+        });
+
+        // Pre-select trainer if member already has one
+        if (member.trainer_id) {
+            trainerSelect.value = member.trainer_id;
+        }
+
+        // Populate plans (PT plans only)
+        const planSelect = document.getElementById('assign_pt_plan_id');
+        planSelect.innerHTML = '<option value="">Select PT Plan</option>';
+        plansData.forEach(p => {
+            const gName = (p.group_name || '').toLowerCase();
+            if (gName.includes('personal') || gName.includes('pt')) {
+                planSelect.innerHTML += `<option value="${p.id}" data-amount="${p.amount}">${p.display_name} - ₹${p.amount}</option>`;
+            }
+        });
+
+        calculatePtAmounts(true);
+        document.getElementById('assign-pt-modal').classList.remove('hidden');
+    }
+
+    function closeAssignPtModal() {
+        document.getElementById('assign-pt-modal').classList.add('hidden');
+    }
+
+    function calculatePtAmounts(updatePaidInput = true) {
+        const select = document.getElementById('assign_pt_plan_id');
+        if (!select.value) {
+            document.getElementById('assign_pt_paid').value = '';
+            document.getElementById('pt-calc-new-price').textContent = '0';
+            document.getElementById('pt-calc-net-diff').textContent = '0';
+            ptNetDifference = 0;
+            calculatePtDueLive();
+            return;
+        }
+
+        const option = select.options[select.selectedIndex];
+        const planAmount = parseFloat(option.getAttribute('data-amount')) || 0;
+        const discount = parseFloat(document.getElementById('assign_pt_discount').value) || 0;
+        const netPlanPrice = Math.max(0, planAmount - discount);
+
+        document.getElementById('pt-calc-new-price').textContent = planAmount.toLocaleString('en-IN');
+
+        const discRow = document.getElementById('pt-row-discount-preview');
+        const discEl = document.getElementById('pt-calc-discount-preview');
+        if (discRow && discEl) {
+            if (discount > 0) { discRow.classList.remove('hidden'); discEl.textContent = discount.toLocaleString('en-IN'); }
+            else { discRow.classList.add('hidden'); }
+        }
+
+        ptNetDifference = netPlanPrice;
+        document.getElementById('pt-calc-net-diff').textContent = netPlanPrice.toLocaleString('en-IN');
+        if (updatePaidInput) document.getElementById('assign_pt_paid').value = netPlanPrice;
+
+        calculatePtDueLive();
+    }
+
+    function calculatePtDueLive() {
+        const paidVal = parseFloat(document.getElementById('assign_pt_paid').value) || 0;
+        const remainingDue = Math.max(0, ptNetDifference - paidVal);
+        const statusBox = document.getElementById('pt-due-status-box');
+        const statusIcon = document.getElementById('pt-due-status-icon');
+        const statusLabel = document.getElementById('pt-due-status-label');
+        const statusAmount = document.getElementById('pt-due-status-amount');
+        if (!statusBox) return;
+
+        if (remainingDue > 0) {
+            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-amber-50 border-amber-200 text-amber-900';
+            statusIcon.className = 'fa-solid fa-triangle-exclamation text-amber-600';
+            statusLabel.textContent = 'Partial Payment (Due Pending)';
+            statusAmount.className = 'font-black text-xs sm:text-sm text-amber-700';
+            statusAmount.textContent = `Remaining Due: ₹${remainingDue.toLocaleString('en-IN')}`;
+        } else {
+            statusBox.className = 'p-3 rounded-xl text-xs font-medium flex items-center justify-between border transition-all bg-emerald-50 border-emerald-200 text-emerald-800';
+            statusIcon.className = 'fa-solid fa-circle-check text-emerald-600';
+            statusLabel.textContent = 'Full Payment';
+            statusAmount.className = 'font-black text-xs sm:text-sm text-emerald-700';
+            statusAmount.textContent = 'Remaining Due: ₹0';
+        }
+    }
+
+    async function submitAssignPt(e) {
+        e.preventDefault();
+        const id = document.getElementById('assign_pt_member_id').value;
+        const planId = document.getElementById('assign_pt_plan_id').value;
+        const trainerId = document.getElementById('assign_pt_trainer_id').value;
+        const startDate = document.getElementById('assign_pt_start_date').value;
+
+        if (!planId) { showError('Please select a PT plan.'); return; }
+        if (!trainerId) { showError('Please select a Trainer.'); return; }
+        if (!startDate) { showError('Please set a start date.'); return; }
+
+        const payload = {
+            pt_plan_id: planId,
+            trainer_id: trainerId,
+            start_date: startDate,
+            discount: document.getElementById('assign_pt_discount').value || 0,
+            amount_received: document.getElementById('assign_pt_paid').value || 0
+        };
+
+        const btn = document.getElementById('btn-pt-submit');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/members/${id}/assign-pt`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showSuccess('PT Plan assigned successfully!');
+                closeAssignPtModal();
+                fetchMembers();
+            } else {
+                showError(data.message || 'Failed to assign PT plan.');
+            }
+        } catch (err) {
+            showError('Network error while assigning PT plan.');
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
+    }
+
 </script>
 <style>
     .animate-fade-in { animation: fadeIn 0.4s ease-in-out; }
@@ -1972,4 +2239,3 @@
 </style>
 @endpush
 @endsection
-

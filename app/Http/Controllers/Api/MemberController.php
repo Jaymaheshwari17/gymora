@@ -149,6 +149,33 @@ class MemberController extends Controller
         }
     }
 
+    public function assignPtPlan(Request $request, $id)
+    {
+        try {
+            if (!in_array($request->user()->role, ['owner', 'staff'])) {
+                return $this->errorResponse('Unauthorized.', [], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'pt_plan_id' => 'required|exists:plans,id',
+                'trainer_id' => 'nullable|exists:users,id',
+                'start_date' => 'required|date',
+                'discount' => 'nullable|numeric|min:0',
+                'amount_received' => 'nullable|numeric|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse('Validation Error', $validator->errors(), 422);
+            }
+
+            $member = $this->memberService->assignPtPlan($id, $request->user()->gym_id, $request->all());
+            return $this->successResponse('PT Plan assigned successfully', $member);
+        } catch (Exception $e) {
+            Log::error('MemberController@assignPtPlan Exception: ' . $e->getMessage());
+            return $this->errorResponse('Failed to assign PT plan.', [], 500);
+        }
+    }
+
     public function destroy(Request $request, $id)
     {
         try {

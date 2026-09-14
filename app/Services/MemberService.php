@@ -20,7 +20,7 @@ class MemberService
     public function getMembers(int $gymId, ?int $trainerId = null)
     {
         try {
-            $query = Member::with(['user', 'plan', 'trainer', 'batch', 'payments'])->where('gym_id', $gymId);
+            $query = Member::with(['user', 'plan', 'ptPlan', 'trainer', 'batch', 'payments'])->where('gym_id', $gymId);
             
             // If trainer is logged in, show only their assigned members
             if ($trainerId) {
@@ -434,6 +434,65 @@ class MemberService
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('MemberService@renewPlan Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function assignPtPlan(int $memberId, int $gymId, array $data)
+    {
+        DB::beginTransaction();
+        try {
+            $member = Member::where('id', $memberId)->where('gym_id', $gymId)->firstOrFail();
+            $plan = Plan::where('id', $data['pt_plan_id'])->where('gym_id', $gymId)->firstOrFail();
+            
+            $planAmount = (float)$plan->amount;
+            $discount = isset($data['discount']) ? (float)$data['discount'] : 0;
+            $totalAmount = max(0, $planAmount - $discount);
+            $paidAmount = isset($data['amount_received']) ? (float)$data['amount_received'] : 0;
+            $dueAmount = max(0, $totalAmount - $paidAmount);
+            
+            $paymentStatus = 'pending';
+            if ($dueAmount <= 0) $paymentStatus = 'paid';
+            else if ($paidAmount > 0) $paymentStatus = 'partial';
+
+            // Update Member profile with PT Info
+            $member->update([
+                'pt_plan_id' => $plan->id,
+                'pt_plan_start_date' => $data['start_date'],
+                'trainer_id' => $data['trainer_id'] ?? $member->trainer_id,
+            ]);
+
+            // Create new payment record for this PT plan (with plan snapshot)
+            $newPayment = Payment::create([
+                'member_id'            => $member->id,
+                'gym_id'               => $gymId,
+                'plan_id'              => $plan->id,
+                'plan_duration_months' => (int)$plan->duration_months,
+                'plan_name'            => $plan->plan_group_name,
+                'total_amount'         => $totalAmount,
+                'paid_amount'          => $paidAmount,
+                'due_amount'           => $dueAmount,
+                'payment_date'         => $paidAmount > 0 ? $data['start_date'] : null,
+                'status'               => $paymentStatus,
+            ]);
+
+            if ($paidAmount > 0) {
+                PaymentTransaction::create([
+                    'payment_id' => $newPayment->id,
+                    'member_id' => $member->id,
+                    'gym_id' => $gymId,
+                    'amount' => $paidAmount,
+                    'payment_date' => $data['start_date'],
+                    'payment_mode' => $data['payment_mode'] ?? 'cash',
+                    'notes' => 'PT Plan payment',
+                ]);
+            }
+
+            DB::commit();
+            return $member->load(['user', 'plan', 'trainer', 'payments']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('MemberService@assignPtPlan Error: ' . $e->getMessage());
             throw $e;
         }
     }
