@@ -3,6 +3,8 @@
 @section('dashboard-content')
 <!-- html2pdf for high quality client-side PDF download -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- xlsx-js-style for formatted Excel export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
 
 
@@ -86,7 +88,14 @@
         <!-- Header -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div class="shrink-0">
-                <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Invoices</h1>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Invoices</h1>
+                    <!-- Excel Export -->
+                    <button onclick="downloadExcel()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Export Excel</span>
+                    </button>
+                </div>
                 <p class="text-xs lg:text-sm text-gray-500 mt-1 font-medium">Manage member fees, track due payments, installments, and GST invoices.</p>
             </div>
             <!-- All filters in ONE row, no wrap -->
@@ -127,6 +136,7 @@
                         <option value="last_month">Last Month</option>
                     </select>
                 </div>
+
             </div>
         </div>
 
@@ -586,6 +596,7 @@
 
 <script>
 let paymentsData = [];
+let currentFilteredPayments = [];
 let activeInvoiceData = null;
 
 async function fetchPayments() {
@@ -759,6 +770,8 @@ function renderPayments() {
 
         return true;
     });
+
+    currentFilteredPayments = filtered;
 
     let totalPaid = 0;
     let totalDue = 0;
@@ -1322,6 +1335,93 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchPayments();
 });
+
+// ==========================================
+// 📊 EXCEL EXPORT (FORMATTED)
+// ==========================================
+function downloadExcel() {
+    if (!currentFilteredPayments || currentFilteredPayments.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No data available to export', 'error');
+        } else {
+            alert('No data available to export');
+        }
+        return;
+    }
+
+    // Map the filtered data into required columns
+    const excelData = currentFilteredPayments.map(p => {
+        const name = p.member?.user?.name || 'Member';
+        const email = p.member?.user?.email || 'N/A';
+        const dateStr = p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB') : '';
+        const total = parseFloat(p.total_amount) || 0;
+        const paid = parseFloat(p.paid_amount) || 0;
+        const due = parseFloat(p.due_amount) || 0;
+
+        return {
+            'Name': name,
+            'Email': email,
+            'Date': dateStr,
+            'Total Amount': total,
+            'Due Amount': due,
+            'Collected (Paid) Amount': paid
+        };
+    });
+
+    // Create Worksheet from JSON
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Apply Styles to Headers (Row 1)
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!ws[cellAddress]) continue;
+
+        ws[cellAddress].s = {
+            fill: {
+                patternType: "solid",
+                fgColor: { rgb: "E2E8F0" } // Gray background
+            },
+            font: {
+                bold: true,
+                color: { rgb: "1E293B" }
+            },
+            alignment: {
+                horizontal: "center",
+                vertical: "center"
+            }
+        };
+    }
+
+    // Adjust column widths
+    ws['!cols'] = [
+        { wch: 25 }, // Name
+        { wch: 30 }, // Email
+        { wch: 15 }, // Date
+        { wch: 18 }, // Total Amount
+        { wch: 18 }, // Due Amount
+        { wch: 25 }  // Collected Amount
+    ];
+
+    // Format number columns (starting from row 2)
+    for (let R = 1; R <= range.e.r; ++R) {
+        for (let C = 3; C <= 5; ++C) { // Columns D, E, F (Total, Due, Paid)
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!ws[cellAddress]) continue;
+            ws[cellAddress].s = {
+                numFmt: "₹#,##0.00"
+            };
+        }
+    }
+
+    // Create Workbook and Export
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Payments");
+    
+    // Generate filename based on date
+    const today = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `Payments_Export_${today}.xlsx`);
+}
 </script>
 @endpush
 @endsection
