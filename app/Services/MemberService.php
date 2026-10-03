@@ -39,12 +39,20 @@ class MemberService
                 $planStartDate = $m->plan_start_date 
                     ? \Carbon\Carbon::parse($m->plan_start_date) 
                     : ($m->joining_date ? \Carbon\Carbon::parse($m->joining_date) : null);
-                $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
 
-                $isExpired = $expiryDate ? $expiryDate->isPast() : false;
-                $isExpiringSoon = $expiryDate ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
+                // Use plan_end_date override (set after hold/resume) OR auto-calculate from start + duration
+                if ($m->plan_end_date) {
+                    $expiryDate = \Carbon\Carbon::parse($m->plan_end_date);
+                } else {
+                    $expiryDate = ($planStartDate && $duration > 0) ? $planStartDate->copy()->addMonths($duration) : null;
+                }
+
+                // On-hold members: not expired, special status
+                $isOnHold = ($m->status === 'on_hold');
+                $isExpired = (!$isOnHold && $expiryDate) ? $expiryDate->isPast() : false;
+                $isExpiringSoon = (!$isOnHold && $expiryDate) ? ($expiryDate->between($now, $threeDaysFromNow)) : false;
                 $isExpiredThisMonth = $expiryDate ? ($expiryDate->isPast() && $expiryDate->between($startOfMonth, $now)) : false;
-                $daysRemaining = $expiryDate ? (int) $now->diffInDays($expiryDate, false) : 0;
+                $daysRemaining = ($expiryDate && !$isOnHold) ? (int) $now->diffInDays($expiryDate, false) : 0;
 
                 // New this month check - use original joining_date (registration date)
                 $isNewThisMonth = false;
@@ -63,7 +71,9 @@ class MemberService
                 $m->is_new_this_month = $isNewThisMonth;
                 $m->days_remaining = $daysRemaining;
 
-                if ($m->status === 'inactive') {
+                if ($isOnHold) {
+                    $m->dynamic_status = 'on_hold';
+                } elseif ($m->status === 'inactive') {
                     $m->dynamic_status = 'inactive';
                 } elseif ($isExpired) {
                     $m->dynamic_status = 'expired';
@@ -387,6 +397,8 @@ class MemberService
                     'discount' => $discount,
                     'total_amount' => $totalAmount,
                     'status' => 'active',
+                    'hold_start_date' => null,
+                    'plan_end_date' => null,
                 ]);
             } else {
                 // 🔄 NORMAL NEXT-CYCLE RENEWAL (Creates distinct payment for next period)
@@ -403,6 +415,8 @@ class MemberService
                     'discount' => $discount,
                     'total_amount' => $totalAmount,
                     'status' => 'active',
+                    'hold_start_date' => null,
+                    'plan_end_date' => null,
                 ]);
 
                 // Create new payment record for this renewal cycle (with plan snapshot)
@@ -514,5 +528,67 @@ class MemberService
             Log::error('MemberService@deleteMember Error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Put a member's plan ON HOLD.
+     * Records the hold start date and sets status to on_hold.
+     */
+    public function holdPlan(int $memberId, int $gymId): Member
+    {
+        $member = Member::where('id', $memberId)->where('gym_id', $gymId)->firstOrFail();
+
+        if ($member->status === 'on_hold') {
+            throw new Exception('Plan is already on hold.');
+        }
+
+        $member->update([
+            'hold_start_date' => now()->toDateString(),
+            'status'          => 'on_hold',
+        ]);
+
+        return $member->load(['user', 'plan', 'payments']);
+    }
+
+    /**
+     * RESUME a member's plan from a given date.
+     * Calculates remaining months (total - months used before hold)
+     * and sets plan_start_date + plan_end_date accordingly.
+     */
+    public function resumePlan(int $memberId, int $gymId, string $resumeDate): Member
+    {
+        $member = Member::where('id', $memberId)->where('gym_id', $gymId)->firstOrFail();
+
+        $plan        = Plan::find($member->plan_id);
+        $totalMonths = $plan ? (int) $plan->duration_months : 0;
+
+        $planStart = \Carbon\Carbon::parse($member->plan_start_date ?? $member->joining_date);
+        
+        // Find the expiry date that was active right before the hold
+        $activeExpiry = $member->plan_end_date 
+            ? \Carbon\Carbon::parse($member->plan_end_date)
+            : $planStart->copy()->addMonths($totalMonths);
+
+        $holdStart = $member->hold_start_date
+            ? \Carbon\Carbon::parse($member->hold_start_date)
+            : now();
+
+        // Calculate exact remaining days when the hold started
+        $remainingDays = (int) $holdStart->diffInDays($activeExpiry, false);
+        if ($remainingDays < 0) {
+            $remainingDays = 0;
+        }
+
+        // New expiry date = resume date + remaining days
+        $resume    = \Carbon\Carbon::parse($resumeDate);
+        $newExpiry = $resume->copy()->addDays($remainingDays);
+
+        $member->update([
+            'plan_end_date'   => $newExpiry->toDateString(),  // Extend expiry exactly by remaining days
+            'hold_start_date' => null,
+            'status'          => 'active',
+        ]);
+
+        return $member->load(['user', 'plan', 'payments']);
     }
 }

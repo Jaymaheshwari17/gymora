@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/members/{id}', [\App\Http\Controllers\Api\MemberController::class, 'update']); // POST with _method=PUT for FormData file uploads from React Native
     Route::delete('/members/{id}', [\App\Http\Controllers\Api\MemberController::class, 'destroy']);
     Route::post('/members/{id}/renew', [\App\Http\Controllers\Api\MemberController::class, 'renew']);
+    Route::post('/members/{id}/hold', [\App\Http\Controllers\Api\MemberController::class, 'holdPlan']);
+    Route::post('/members/{id}/resume', [\App\Http\Controllers\Api\MemberController::class, 'resumePlan']);
     Route::post('/members/{id}/assign-pt', [\App\Http\Controllers\Api\MemberController::class, 'assignPtPlan']);
     
     // Gym Settings Routes

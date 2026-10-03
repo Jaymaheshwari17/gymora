@@ -799,6 +799,45 @@
         </div>
     </div>
 </div>
+<!-- Resume Plan Modal -->
+<div id="resume-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6">
+    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeResumeModal()"></div>
+    <div class="bg-white rounded-2xl shadow-2xl relative z-10 w-full max-w-md flex flex-col max-h-[92vh] transform transition-all border border-gray-100 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center shrink-0">
+            <div>
+                <h3 class="text-base font-extrabold text-gray-900">▶️ Resume Plan</h3>
+                <p class="text-xs text-gray-500 font-medium mt-0.5" id="resume-member-name">Member Name</p>
+            </div>
+            <button type="button" onclick="closeResumeModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto flex-1">
+            <form id="resume-form" onsubmit="submitResumePlan(event)">
+                <input type="hidden" id="resume_member_id">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Resume Date <span class="text-red-500">*</span></label>
+                        <input type="date" id="resume_date" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm font-bold text-gray-900 bg-white">
+                        <p class="text-xs text-gray-500 mt-1">Expiry date will be calculated automatically based on remaining duration.</p>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex justify-end gap-3 shrink-0">
+            <button type="button" onclick="closeResumeModal()" class="px-4 py-2 text-gray-600 hover:text-gray-900 font-bold text-xs rounded-xl transition cursor-pointer">Cancel</button>
+            <button type="submit" form="resume-form" id="btn-resume-submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer">✅ Resume Plan</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let membersData = [];
     let plansData = [];
@@ -1122,11 +1161,15 @@
             const isExpired = !!member.is_expired || member.status === 'expired' || member.dynamic_status === 'expired';
             const isExpiringSoon = !!member.is_expiring_soon || member.dynamic_status === 'expiring';
             const isInactive = member.status === 'inactive' || member.dynamic_status === 'inactive';
+            const isOnHold = member.status === 'on_hold' || member.dynamic_status === 'on_hold';
 
             let statusClass = 'bg-emerald-100 text-emerald-700';
             let statusText = 'ACTIVE';
 
-            if (isInactive) {
+            if (isOnHold) {
+                statusClass = 'bg-blue-100 text-blue-700 border border-blue-200';
+                statusText = 'ON HOLD';
+            } else if (isInactive) {
                 statusClass = 'bg-gray-100 text-gray-700';
                 statusText = 'INACTIVE';
             } else if (isExpired) {
@@ -1220,6 +1263,10 @@
                     </td>
                     <td class="text-center">
                         <div class="flex justify-center gap-2">
+                            ${isOnHold 
+                                ? `<button onclick='openResumeModal(${member.id})' class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Resume Plan"><i class="fa-solid fa-play text-sm"></i></button>`
+                                : `<button onclick='holdMemberPlan(${member.id})' class="w-10 h-10 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 flex items-center justify-center transition shadow-sm cursor-pointer" title="Hold Plan"><i class="fa-solid fa-pause text-sm"></i></button>`
+                            }
                             <button onclick='openRenewModal(${member.id})' class="${renewBtnStyle}" title="Renew / Extend Plan">
                                 <i class="fa-solid fa-arrows-rotate text-sm"></i>
                             </button>
@@ -1337,8 +1384,15 @@
         const planStartForView = member.plan_start_date || member.joining_date;
         if (planStartForView && plan && plan.duration_months) {
             const startDate = new Date(planStartForView);
-            const expiryDate = new Date(startDate);
-            expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
+            let expiryDate;
+            
+            if (member.plan_end_date) {
+                expiryDate = new Date(member.plan_end_date);
+            } else {
+                expiryDate = new Date(startDate);
+                expiryDate.setMonth(expiryDate.getMonth() + parseInt(plan.duration_months));
+            }
+            
             const startStr = startDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const expiryStr = expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             
@@ -1791,6 +1845,92 @@
             btn.disabled  = false;
         }
     }
+
+    // ---- Plan Hold & Resume Logic ----
+    function holdMemberPlan(id) {
+        Swal.fire({
+            title: 'Hold Plan?',
+            text: "Are you sure you want to pause this member's plan? Remaining duration will be saved for later.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#d1d5db',
+            confirmButtonText: 'Yes, put on hold!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                showLoader();
+                try {
+                    const res = await fetch(`/api/members/${id}/hold`, {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        showSuccess(data.message || 'Plan is now on hold.');
+                        fetchMembers();
+                    } else {
+                        showError(data.message || 'Failed to hold plan.');
+                    }
+                } catch (e) {
+                    showError('Network error');
+                } finally {
+                    hideLoader();
+                }
+            }
+        });
+    }
+
+    function openResumeModal(id) {
+        const member = membersData.find(m => m.id === id);
+        if (!member) return;
+        
+        document.getElementById('resume_member_id').value = id;
+        document.getElementById('resume-member-name').textContent = member.user?.name || 'Member';
+        document.getElementById('resume_date').valueAsDate = new Date();
+        document.getElementById('resume-modal').classList.remove('hidden');
+    }
+
+    function closeResumeModal() {
+        document.getElementById('resume-modal').classList.add('hidden');
+    }
+
+    async function submitResumePlan(e) {
+        e.preventDefault();
+        const id = document.getElementById('resume_member_id').value;
+        const resumeDate = document.getElementById('resume_date').value;
+
+        if (!resumeDate) {
+            showError('Please select a resume date.');
+            return;
+        }
+
+        const btn = document.getElementById('btn-resume-submit');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resuming...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/members/${id}/resume`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ resume_date: resumeDate })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showSuccess(data.message || 'Plan resumed successfully.');
+                closeResumeModal();
+                fetchMembers();
+            } else {
+                showError(data.message || 'Failed to resume plan.');
+            }
+        } catch (err) {
+            showError('Network error');
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        }
+    }
+    
     function togglePasswordVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);

@@ -194,4 +194,38 @@ class MemberController extends Controller
             return $this->errorResponse('Failed to delete member.', [], 500);
         }
     }
+
+    public function holdPlan(Request $request, $id)
+    {
+        try {
+            if (!in_array($request->user()->role, ['owner', 'staff'])) {
+                return $this->errorResponse('Unauthorized.', [], 403);
+            }
+            $member = $this->memberService->holdPlan($id, $request->user()->gym_id);
+            return $this->successResponse('Plan put on hold successfully.', $member);
+        } catch (Exception $e) {
+            Log::error('MemberController@holdPlan Exception: ' . $e->getMessage());
+            return $this->errorResponse($e->getMessage() ?: 'Failed to hold plan.', [], 500);
+        }
+    }
+
+    public function resumePlan(Request $request, $id)
+    {
+        try {
+            if (!in_array($request->user()->role, ['owner', 'staff'])) {
+                return $this->errorResponse('Unauthorized.', [], 403);
+            }
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'resume_date' => 'required|date',
+            ]);
+            if ($validator->fails()) {
+                return $this->errorResponse('Resume date is required.', $validator->errors(), 422);
+            }
+            $member = $this->memberService->resumePlan($id, $request->user()->gym_id, $request->resume_date);
+            return $this->successResponse('Plan resumed successfully.', $member);
+        } catch (Exception $e) {
+            Log::error('MemberController@resumePlan Exception: ' . $e->getMessage());
+            return $this->errorResponse($e->getMessage() ?: 'Failed to resume plan.', [], 500);
+        }
+    }
 }
