@@ -102,6 +102,10 @@ class MemberController extends Controller
                 'batch_id' => 'nullable|exists:batches,id',
                 'trainer_id' => 'nullable|exists:users,id',
                 'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'plan_id' => 'nullable|exists:plans,id',
+                'joining_date' => 'nullable|date',
+                'discount' => 'nullable|numeric|min:0',
+                'amount_received' => 'nullable|numeric|min:0',
             ]);
 
             if ($validator->fails()) {

@@ -220,6 +220,9 @@ class MemberService
                 $plan = Plan::where('id', $data['plan_id'])->where('gym_id', $gymId)->first();
                 if ($plan) {
                     $memberUpdate['plan_id'] = $plan->id;
+                    // Keep existing plan_start_date - only renew/upgrade changes it
+                    // joining_date is original gym join date, NEVER used as plan_start_date on edit
+                    $memberUpdate['plan_start_date'] = $member->plan_start_date ?? $member->joining_date;
                     $planAmount = (float)$plan->amount;
                     
                     // Handle PT Plan if provided during update

@@ -1913,8 +1913,8 @@
         
         document.getElementById('total_amount_display').textContent = total.toLocaleString();
         
-        // ONLY auto-fill amount_received with total for NEW member registration if user hasn't typed a custom amount!
-        // In Edit mode (isEditing = true), NEVER overwrite the member's existing paid amount!
+        // Auto-fill amount_received only for NEW member (not edit)
+        // In EDIT mode, keep showing the actual paid amount - don't overwrite!
         if (!isEditing && !amountReceivedTouched) {
             document.getElementById('amount_received').value = total;
         }
@@ -2005,11 +2005,12 @@
         form.append('batch_id', document.getElementById('batch_id').value);
         form.append('trainer_id', document.getElementById('trainer_id').value);
         
-        if (!isEditing) {
-            form.append('plan_id', document.getElementById('plan_id').value);
-            form.append('discount', document.getElementById('discount').value);
-            form.append('amount_received', document.getElementById('amount_received').value);
-        } else {
+        // Always send plan & payment fields (both add and edit)
+        form.append('plan_id', document.getElementById('plan_id').value);
+        form.append('discount', document.getElementById('discount').value);
+        form.append('amount_received', document.getElementById('amount_received').value);
+
+        if (isEditing) {
             form.append('status', document.getElementById('status').value);
         }
 
@@ -2030,7 +2031,7 @@
         
         if (isEditing) {
             url = `/api/members/${id}`;
-            form.append('_method', 'PUT'); // For laravel FormData update
+            // No _method: PUT — using direct POST route which avoids PHP multipart parsing bug
         }
 
         try {

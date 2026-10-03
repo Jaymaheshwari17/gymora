@@ -117,10 +117,10 @@
                 </button>
             </form>
 
-            <div class="text-center text-gray-600 text-sm mt-8">
+            <!-- <div class="text-center text-gray-600 text-sm mt-8">
                 Don't have an account? 
                 <a href="/register" class="text-indigo-600 font-medium hover:text-indigo-700 ml-1">Sign Up</a>
-            </div>
+            </div> -->
         </div>
     </div>
     <!-- Forgot Password Modal -->
