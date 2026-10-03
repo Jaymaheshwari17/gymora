@@ -201,7 +201,13 @@ class MemberController extends Controller
             if (!in_array($request->user()->role, ['owner', 'staff'])) {
                 return $this->errorResponse('Unauthorized.', [], 403);
             }
-            $member = $this->memberService->holdPlan($id, $request->user()->gym_id);
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'hold_date' => 'required|date',
+            ]);
+            if ($validator->fails()) {
+                return $this->errorResponse('Hold date is required.', $validator->errors(), 422);
+            }
+            $member = $this->memberService->holdPlan($id, $request->user()->gym_id, $request->hold_date);
             return $this->successResponse('Plan put on hold successfully.', $member);
         } catch (Exception $e) {
             Log::error('MemberController@holdPlan Exception: ' . $e->getMessage());

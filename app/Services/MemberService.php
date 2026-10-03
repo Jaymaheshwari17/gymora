@@ -534,7 +534,7 @@ class MemberService
      * Put a member's plan ON HOLD.
      * Records the hold start date and sets status to on_hold.
      */
-    public function holdPlan(int $memberId, int $gymId): Member
+    public function holdPlan(int $memberId, int $gymId, string $holdDate): Member
     {
         $member = Member::where('id', $memberId)->where('gym_id', $gymId)->firstOrFail();
 
@@ -543,7 +543,7 @@ class MemberService
         }
 
         $member->update([
-            'hold_start_date' => now()->toDateString(),
+            'hold_start_date' => \Carbon\Carbon::parse($holdDate)->toDateString(),
             'status'          => 'on_hold',
         ]);
 

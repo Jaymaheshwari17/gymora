@@ -1848,21 +1848,43 @@
 
     // ---- Plan Hold & Resume Logic ----
     function holdMemberPlan(id) {
+        const member = membersData.find(m => m.id === id);
+        if (!member) return;
+        
         Swal.fire({
             title: 'Hold Plan?',
-            text: "Are you sure you want to pause this member's plan? Remaining duration will be saved for later.",
+            html: `
+                <p class="text-sm text-gray-500 mb-4">Select the date from which the plan should be paused.</p>
+                <div class="text-left max-w-xs mx-auto">
+                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Hold Start Date <span class="text-red-500">*</span></label>
+                    <input type="date" id="swal-hold-date" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-sm font-bold text-gray-900 bg-white" value="${new Date().toISOString().split('T')[0]}" required>
+                </div>
+            `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3b82f6',
             cancelButtonColor: '#d1d5db',
-            confirmButtonText: 'Yes, put on hold!'
+            confirmButtonText: 'Yes, put on hold!',
+            preConfirm: () => {
+                const date = document.getElementById('swal-hold-date').value;
+                if (!date) {
+                    Swal.showValidationMessage('Please select a valid hold date.');
+                }
+                return date;
+            }
         }).then(async (result) => {
             if (result.isConfirmed) {
+                const holdDate = result.value;
                 showLoader();
                 try {
                     const res = await fetch(`/api/members/${id}/hold`, {
                         method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' }
+                        headers: { 
+                            'Authorization': 'Bearer ' + token, 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json' 
+                        },
+                        body: JSON.stringify({ hold_date: holdDate })
                     });
                     const data = await res.json();
                     if (res.ok && data.success) {
